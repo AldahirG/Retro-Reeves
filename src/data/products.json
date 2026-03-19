@@ -1,0 +1,19 @@
+[
+  {
+    "id": "toji-vol2",
+    "name": "Playera Toji Vol.2",
+    "slug": "playera-toji-vol2",
+    "price": 499,
+    "category": "anime",
+    "drop": true,
+    "dropSlug": "jjk-shadow-drop",
+    "limited": true,
+    "sizes": ["CH", "M", "G", "XG"],
+    "colors": ["Negro", "Blanco"],
+    "images": [
+      "/images/products/toji-vol2/8.png",
+      "/images/products/toji-vol2/10.png"
+    ],
+    "description": "Inspirada en la energía oscura..."
+  }
+]

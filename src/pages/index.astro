@@ -1,0 +1,62 @@
+---
+import Layout from '../layouts/Layout.astro';
+import '../../assets/scss/astro-ecommerce.scss';
+import Navbar from '../components/navbar';
+import Footer from '../components/footer';
+import CardProduct from '../components/products/cardProduct';
+import CardCategory from '../components/products/cardCategory';
+import { getProducts } from "../lib/products";
+
+const products = getProducts();
+const featured = products.slice(0, 4);
+---
+
+<Layout title="Retro Reeves">
+  <main>
+    <Navbar />
+
+    <!-- HERO -->
+    <section class="py-10 text-center">
+      <div class="container">
+        <h1 class="display-4 fw-bold">Retro Reeves</h1>
+        <p class="lead">Streetwear • Anime • Gym • Cultura</p>
+      </div>
+    </section>
+
+    <!-- PRODUCTOS DESTACADOS -->
+    <section class="container py-5">
+      <div class="text-center mb-5">
+        <h3>Destacados</h3>
+      </div>
+
+      <div class="row">
+        {featured.map(product => (
+          <div class="col-12 col-md-6 col-lg-3 mb-4">
+            <a href={`/product/${product.slug}`} class="text-decoration-none text-dark">
+              <CardProduct
+                thumb_src={product.images[0]}
+                thumb_alt={product.name}
+                title={product.name}
+                price={product.price}
+              />
+            </a>
+          </div>
+        ))}
+      </div>
+    </section>
+
+    <!-- CTA WHATSAPP -->
+    <section class="text-center py-5 bg-light">
+      <h4>¿Listo para tu próximo drop?</h4>
+      <a 
+        href="https://wa.me/521TU_NUMERO" 
+        target="_blank"
+        class="btn btn-dark mt-3"
+      >
+        Comprar por WhatsApp
+      </a>
+    </section>
+
+    <Footer />
+  </main>
+</Layout>

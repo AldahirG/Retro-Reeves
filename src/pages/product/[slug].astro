@@ -1,0 +1,33 @@
+---
+import Layout from "../../layouts/Layout.astro"
+import { getProducts, getProductBySlug } from "../../lib/products"
+
+export async function getStaticPaths() {
+  const products = getProducts()
+  return products.map((product) => ({
+    params: { slug: product.slug }
+  }))
+}
+
+const { slug } = Astro.params
+const product = getProductBySlug(slug)
+---
+
+<Layout>
+  {product ? (
+    <div class="container py-5">
+      <h1>{product.name}</h1>
+      <p>${product.price}</p>
+
+      <div class="row">
+        {product.images.map((img) => (
+          <img src={img} class="col-md-6 mb-3" />
+        ))}
+      </div>
+
+      <p>{product.description}</p>
+    </div>
+  ) : (
+    <p>Producto no encontrado</p>
+  )}
+</Layout>
