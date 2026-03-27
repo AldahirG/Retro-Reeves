@@ -1,0 +1,815 @@
+---
+/**
+ * QuickviewModal.astro
+ * ─────────────────────────────────────────────────────────
+ * Modal de vista rápida de producto. Se activa desde cualquier
+ * card del catálogo mediante el evento global `rr:quickview`.
+ *
+ * USO en index.astro / [slug].astro:
+ *   1. Importar: import QuickviewModal from '../components/products/QuickviewModal.astro'
+ *   2. Agregar al final del <main>, antes de <Footer />:
+ *      <QuickviewModal base={base} />
+ *   3. En cada card de producto añadir el botón de trigger (ver abajo).
+ *
+ * TRIGGER desde una card:
+ *   <button
+ *     class="rr-qv-trigger"
+ *     data-slug={product.slug}
+ *     data-name={product.name}
+ *     data-price={product.price}
+ *     data-images={JSON.stringify(product.images)}
+ *     data-sizes={JSON.stringify(product.sizes)}
+ *     data-colors={JSON.stringify(product.colors)}
+ *     data-description={product.description}
+ *     data-limited={product.limited ? "1" : ""}
+ *     data-drop={product.drop ? "1" : ""}
+ *     type="button"
+ *   >
+ *     Vista rápida
+ *   </button>
+ *
+ * El botón puede ir dentro del wrapper hover de la card:
+ *   .rr-product-card__img-wrap — aparece al hacer hover
+ * ─────────────────────────────────────────────────────────
+ */
+
+interface Props {
+  base: string;
+}
+const { base } = Astro.props;
+---
+
+<!-- OVERLAY + MODAL -->
+<div id="rr-qv-overlay" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Vista rápida del producto">
+  <div id="rr-qv-modal">
+
+    <!-- Botón cerrar -->
+    <button id="rr-qv-close" type="button" aria-label="Cerrar">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+        <line x1="1" y1="1" x2="13" y2="13"/><line x1="13" y1="1" x2="1" y2="13"/>
+      </svg>
+    </button>
+
+    <!-- GALERÍA -->
+    <div id="rr-qv-gallery">
+      <div id="rr-qv-thumbs"></div>
+      <div id="rr-qv-main-wrap">
+        <img id="rr-qv-main-img" src="" alt="" loading="eager"/>
+        <!-- badges -->
+        <div id="rr-qv-badges"></div>
+        <!-- nav flechas en móvil -->
+        <button class="rr-qv-arrow rr-qv-arrow--prev" id="rr-qv-prev" type="button" aria-label="Imagen anterior">‹</button>
+        <button class="rr-qv-arrow rr-qv-arrow--next" id="rr-qv-next" type="button" aria-label="Imagen siguiente">›</button>
+      </div>
+    </div>
+
+    <!-- INFO -->
+    <div id="rr-qv-info">
+
+      <div id="rr-qv-header">
+        <h2 id="rr-qv-name"></h2>
+        <span id="rr-qv-price"></span>
+      </div>
+
+      <p id="rr-qv-desc"></p>
+
+      <!-- COLORES -->
+      <div id="rr-qv-colors-wrap">
+        <div class="rr-qv-label">
+          Color — <span id="rr-qv-color-selected"></span>
+        </div>
+        <div id="rr-qv-colors"></div>
+      </div>
+
+      <!-- TALLAS -->
+      <div id="rr-qv-sizes-wrap">
+        <div class="rr-qv-label">
+          Talla — <span id="rr-qv-size-selected"></span>
+        </div>
+        <div id="rr-qv-sizes"></div>
+        <p id="rr-qv-size-err">Selecciona una talla para continuar</p>
+      </div>
+
+      <!-- CANTIDAD -->
+      <div id="rr-qv-qty-wrap">
+        <div class="rr-qv-label">Cantidad</div>
+        <div id="rr-qv-qty-ctrl">
+          <button id="rr-qv-qty-dec" type="button">−</button>
+          <span id="rr-qv-qty-num">1</span>
+          <button id="rr-qv-qty-inc" type="button">+</button>
+        </div>
+      </div>
+
+      <!-- ACCIONES -->
+      <div id="rr-qv-actions">
+        <button id="rr-qv-btn-cart" type="button">
+          Agregar al carrito
+        </button>
+        <a id="rr-qv-btn-wa" href="#" target="_blank" rel="noopener noreferrer">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+          </svg>
+          Pedir por WhatsApp
+        </a>
+        <a id="rr-qv-btn-detail" href="#">Ver detalle completo →</a>
+      </div>
+
+    </div><!-- /info -->
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="rr-qv-toast">✓ Agregado al carrito</div>
+
+<style is:global>
+/* ── OVERLAY ───────────────────────────────────────────── */
+#rr-qv-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  z-index: 4000;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+}
+#rr-qv-overlay.open {
+  display: flex;
+  animation: qvFadeIn 0.22s ease;
+}
+@keyframes qvFadeIn { from { opacity:0 } to { opacity:1 } }
+
+/* ── MODAL ─────────────────────────────────────────────── */
+#rr-qv-modal {
+  background: #fff;
+  width: 100%;
+  max-width: 860px;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  animation: qvSlideUp 0.28s cubic-bezier(0.22,1,0.36,1);
+}
+@keyframes qvSlideUp { from { transform:translateY(24px);opacity:0 } to { transform:translateY(0);opacity:1 } }
+
+@media (max-width: 640px) {
+  #rr-qv-modal {
+    grid-template-columns: 1fr;
+    max-height: 92vh;
+    border-radius: 0;
+  }
+}
+
+/* ── CERRAR ────────────────────────────────────────────── */
+#rr-qv-close {
+  position: absolute;
+  top: 0.9rem;
+  right: 0.9rem;
+  z-index: 10;
+  width: 32px;
+  height: 32px;
+  background: #fff;
+  border: 1px solid rgba(0,0,0,0.12);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #0d0d0d;
+  transition: background 0.15s, border-color 0.15s;
+  box-shadow: none;
+  outline: none;
+  padding: 0;
+}
+#rr-qv-close:hover { background: #0d0d0d; color: #fff; border-color: #0d0d0d; }
+
+/* ── GALERÍA ───────────────────────────────────────────── */
+#rr-qv-gallery {
+  display: flex;
+  gap: 0;
+  background: #f5f4ef;
+  position: relative;
+  min-height: 380px;
+}
+
+#rr-qv-thumbs {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.75rem;
+  width: 68px;
+  flex-shrink: 0;
+}
+.rr-qv-thumb {
+  width: 52px;
+  height: 64px;
+  overflow: hidden;
+  background: #e8e6e0;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  flex-shrink: 0;
+  transition: border-color 0.15s;
+}
+.rr-qv-thumb.active { border-color: #0d0d0d; }
+.rr-qv-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+#rr-qv-main-wrap {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+#rr-qv-main-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: opacity 0.2s ease;
+  min-height: 380px;
+}
+
+/* badges sobre la imagen */
+#rr-qv-badges {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.rr-qv-badge {
+  font-family: 'PT Mono', monospace;
+  font-size: 0.46rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  line-height: 1.6;
+}
+.rr-qv-badge--drop    { background: #c8382a; color: #fff; }
+.rr-qv-badge--limited { background: #0d0d0d; color: #fff; }
+
+/* flechas móvil */
+.rr-qv-arrow {
+  display: none;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255,255,255,0.85);
+  border: none;
+  width: 32px;
+  height: 32px;
+  font-size: 1.2rem;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  color: #0d0d0d;
+  z-index: 2;
+  box-shadow: none;
+  outline: none;
+  padding: 0;
+  border-radius: 0;
+}
+.rr-qv-arrow--prev { left: 0.5rem; }
+.rr-qv-arrow--next { right: 0.5rem; }
+@media (max-width: 640px) {
+  #rr-qv-thumbs { display: none; }
+  .rr-qv-arrow { display: flex; }
+}
+
+/* ── INFO ──────────────────────────────────────────────── */
+#rr-qv-info {
+  padding: 1.75rem 1.6rem 1.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  overflow-y: auto;
+}
+
+#rr-qv-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid rgba(0,0,0,0.08);
+}
+#rr-qv-name {
+  font-family: 'Noto Sans', sans-serif;
+  font-weight: 800;
+  font-size: 1.1rem;
+  letter-spacing: -0.025em;
+  color: #0d0d0d;
+  margin: 0;
+  line-height: 1.25;
+}
+#rr-qv-price {
+  font-family: 'PT Mono', monospace;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #0d0d0d;
+  white-space: nowrap;
+}
+
+#rr-qv-desc {
+  font-family: 'Noto Sans', sans-serif;
+  font-size: 0.82rem;
+  color: rgba(0,0,0,0.52);
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* labels de sección */
+.rr-qv-label {
+  font-family: 'PT Mono', monospace;
+  font-size: 0.52rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(0,0,0,0.38);
+  margin-bottom: 0.5rem;
+}
+.rr-qv-label span {
+  color: #0d0d0d;
+  font-weight: 700;
+}
+
+/* colores */
+#rr-qv-colors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.rr-qv-color-btn {
+  height: 28px;
+  padding: 0 0.75rem;
+  background: #f5f4ef;
+  border: 1px solid rgba(0,0,0,0.14);
+  font-family: 'PT Mono', monospace;
+  font-size: 0.58rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #0d0d0d;
+  cursor: pointer;
+  transition: background 0.14s, border-color 0.14s;
+  border-radius: 0;
+  box-shadow: none;
+  outline: none;
+}
+.rr-qv-color-btn:hover { border-color: #0d0d0d; }
+.rr-qv-color-btn.active { background: #0d0d0d; color: #fff; border-color: #0d0d0d; }
+
+/* tallas */
+#rr-qv-sizes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.rr-qv-size-btn {
+  width: 44px;
+  height: 36px;
+  background: #fff;
+  border: 1px solid rgba(0,0,0,0.14);
+  font-family: 'PT Mono', monospace;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #0d0d0d;
+  cursor: pointer;
+  transition: background 0.14s, border-color 0.14s;
+  border-radius: 0;
+  box-shadow: none;
+  outline: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.rr-qv-size-btn:hover { border-color: #0d0d0d; }
+.rr-qv-size-btn.active { background: #0d0d0d; color: #fff; border-color: #0d0d0d; }
+
+#rr-qv-size-err {
+  font-family: 'PT Mono', monospace;
+  font-size: 0.5rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #c8382a;
+  margin: 0.3rem 0 0;
+  display: none;
+}
+#rr-qv-size-err.show { display: block; }
+
+/* cantidad */
+#rr-qv-qty-ctrl {
+  display: inline-flex;
+  align-items: stretch;
+  border: 1px solid rgba(0,0,0,0.14);
+  height: 36px;
+  overflow: hidden;
+}
+#rr-qv-qty-ctrl button {
+  width: 36px;
+  height: 36px;
+  background: #f5f4ef;
+  border: none;
+  font-size: 1.1rem;
+  font-family: 'PT Mono', monospace;
+  color: #0d0d0d;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border-radius: 0;
+  box-shadow: none;
+  outline: none;
+  transition: background 0.14s, color 0.14s;
+}
+#rr-qv-qty-ctrl button:hover { background: #0d0d0d; color: #fff; }
+#rr-qv-qty-num {
+  width: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'PT Mono', monospace;
+  font-size: 0.82rem;
+  font-weight: 700;
+  border-left: 1px solid rgba(0,0,0,0.10);
+  border-right: 1px solid rgba(0,0,0,0.10);
+  background: #fff;
+  user-select: none;
+}
+
+/* acciones */
+#rr-qv-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: auto;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(0,0,0,0.07);
+}
+#rr-qv-btn-cart {
+  width: 100%;
+  padding: 0.9rem;
+  background: #0d0d0d;
+  color: #fff;
+  border: 1px solid #0d0d0d;
+  font-family: 'PT Mono', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.18s, transform 0.1s;
+  border-radius: 0;
+  box-shadow: none;
+  outline: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#rr-qv-btn-cart:hover { opacity: 0.85; }
+#rr-qv-btn-cart:active { transform: scale(0.98); }
+
+#rr-qv-btn-wa {
+  width: 100%;
+  padding: 0.85rem;
+  background: #25d366;
+  color: #fff;
+  border: 1px solid #25d366;
+  font-family: 'PT Mono', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.18s;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+}
+#rr-qv-btn-wa:hover { opacity: 0.9; }
+
+#rr-qv-btn-detail {
+  font-family: 'PT Mono', monospace;
+  font-size: 0.55rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(0,0,0,0.35);
+  text-decoration: none;
+  text-align: center;
+  transition: color 0.18s;
+}
+#rr-qv-btn-detail:hover { color: #0d0d0d; }
+
+/* ── TOAST ─────────────────────────────────────────────── */
+#rr-qv-toast {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%) translateY(60px);
+  background: #0d0d0d;
+  color: #fff;
+  font-family: 'PT Mono', monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 0.7rem 1.4rem;
+  z-index: 5000;
+  opacity: 0;
+  pointer-events: none;
+  white-space: nowrap;
+  border-radius: 0;
+  transition: transform 0.28s ease, opacity 0.28s ease;
+}
+#rr-qv-toast.show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
+
+/* ── TRIGGER BUTTON en cards ───────────────────────────── */
+.rr-qv-trigger {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 0.65rem;
+  background: rgba(13,13,13,0.88);
+  color: #fff;
+  border: none;
+  font-family: 'PT Mono', monospace;
+  font-size: 0.55rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 700;
+  cursor: pointer;
+  border-radius: 0;
+  box-shadow: none;
+  outline: none;
+  transform: translateY(100%);
+  transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+}
+/* La card padre debe tener position:relative y overflow:hidden */
+.rr-product-card:hover .rr-qv-trigger,
+.rr-rel-card:hover .rr-qv-trigger {
+  transform: translateY(0);
+}
+</style>
+
+<script define:vars={{ base }}>
+(function() {
+  const overlay  = document.getElementById('rr-qv-overlay');
+  const modal    = document.getElementById('rr-qv-modal');
+  const closeBtn = document.getElementById('rr-qv-close');
+  const mainImg  = document.getElementById('rr-qv-main-img');
+  const thumbsEl = document.getElementById('rr-qv-thumbs');
+  const badgesEl = document.getElementById('rr-qv-badges');
+  const nameEl   = document.getElementById('rr-qv-name');
+  const priceEl  = document.getElementById('rr-qv-price');
+  const descEl   = document.getElementById('rr-qv-desc');
+  const colorsEl = document.getElementById('rr-qv-colors');
+  const colorSel = document.getElementById('rr-qv-color-selected');
+  const colWrap  = document.getElementById('rr-qv-colors-wrap');
+  const sizesEl  = document.getElementById('rr-qv-sizes');
+  const sizeSel  = document.getElementById('rr-qv-size-selected');
+  const sizeErr  = document.getElementById('rr-qv-size-err');
+  const sizeWrap = document.getElementById('rr-qv-sizes-wrap');
+  const qtyDec   = document.getElementById('rr-qv-qty-dec');
+  const qtyInc   = document.getElementById('rr-qv-qty-inc');
+  const qtyNum   = document.getElementById('rr-qv-qty-num');
+  const btnCart  = document.getElementById('rr-qv-btn-cart');
+  const btnWa    = document.getElementById('rr-qv-btn-wa');
+  const btnDet   = document.getElementById('rr-qv-btn-detail');
+  const prevBtn  = document.getElementById('rr-qv-prev');
+  const nextBtn  = document.getElementById('rr-qv-next');
+  const toast    = document.getElementById('rr-qv-toast');
+
+  if (!overlay) return;
+
+  let state = {
+    slug: '', name: '', price: 0,
+    images: [], sizes: [], colors: [],
+    selectedColor: '', selectedSize: '',
+    qty: 1, currentImg: 0,
+  };
+
+  /* ── OPEN ─────────────────────────────────────────── */
+  function openQV(data) {
+    state = {
+      slug:          data.slug,
+      name:          data.name,
+      price:         Number(data.price),
+      images:        JSON.parse(data.images || '[]'),
+      sizes:         JSON.parse(data.sizes  || '[]'),
+      colors:        JSON.parse(data.colors || '[]'),
+      selectedColor: '',
+      selectedSize:  '',
+      qty:           1,
+      currentImg:    0,
+    };
+
+    // Preseleccionar primer color
+    if (state.colors.length) {
+      state.selectedColor = state.colors[0];
+    }
+
+    renderAll(data);
+    overlay.classList.add('open');
+    overlay.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+    closeBtn.focus();
+  }
+
+  function closeQV() {
+    overlay.classList.remove('open');
+    overlay.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+  }
+
+  /* ── RENDER ───────────────────────────────────────── */
+  function renderAll(data) {
+    nameEl.textContent  = state.name;
+    priceEl.textContent = '$' + state.price.toLocaleString('es-MX') + ' MXN';
+    descEl.textContent  = data.description || '';
+    btnDet.href         = base + '/product/' + state.slug;
+
+    // Badges
+    badgesEl.innerHTML = '';
+    if (data.drop)    badgesEl.innerHTML += '<span class="rr-qv-badge rr-qv-badge--drop">Drop</span>';
+    if (data.limited) badgesEl.innerHTML += '<span class="rr-qv-badge rr-qv-badge--limited">Limitado</span>';
+
+    // Galería
+    renderGallery();
+
+    // Colores
+    if (state.colors.length) {
+      colWrap.style.display = 'block';
+      colorsEl.innerHTML = state.colors.map(c => `
+        <button class="rr-qv-color-btn${c === state.selectedColor ? ' active' : ''}"
+          data-color="${c}" type="button">${c}</button>
+      `).join('');
+      colorSel.textContent = state.selectedColor;
+      colorsEl.querySelectorAll('.rr-qv-color-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          state.selectedColor = btn.dataset.color;
+          colorsEl.querySelectorAll('.rr-qv-color-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          colorSel.textContent = state.selectedColor;
+          updateWA();
+        });
+      });
+    } else {
+      colWrap.style.display = 'none';
+    }
+
+    // Tallas
+    if (state.sizes.length) {
+      sizeWrap.style.display = 'block';
+      sizesEl.innerHTML = state.sizes.map(s => `
+        <button class="rr-qv-size-btn" data-size="${s}" type="button">${s}</button>
+      `).join('');
+      sizeSel.textContent = '—';
+      sizesEl.querySelectorAll('.rr-qv-size-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          state.selectedSize = btn.dataset.size;
+          sizesEl.querySelectorAll('.rr-qv-size-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          sizeSel.textContent = state.selectedSize;
+          sizeErr.classList.remove('show');
+          updateWA();
+        });
+      });
+    } else {
+      sizeWrap.style.display = 'none';
+    }
+
+    // Cantidad
+    state.qty = 1;
+    qtyNum.textContent = '1';
+
+    updateWA();
+  }
+
+  function renderGallery() {
+    state.currentImg = 0;
+    thumbsEl.innerHTML = '';
+
+    if (!state.images.length) {
+      mainImg.src = '';
+      mainImg.alt = state.name;
+      return;
+    }
+
+    mainImg.src = base + '/' + state.images[0];
+    mainImg.alt = state.name;
+
+    state.images.forEach((src, i) => {
+      const t = document.createElement('div');
+      t.className = 'rr-qv-thumb' + (i === 0 ? ' active' : '');
+      t.innerHTML = `<img src="${base}/${src}" alt="${state.name}" loading="lazy"/>`;
+      t.addEventListener('click', () => setImg(i));
+      thumbsEl.appendChild(t);
+    });
+  }
+
+  function setImg(idx) {
+    state.currentImg = (idx + state.images.length) % state.images.length;
+    mainImg.style.opacity = '0';
+    setTimeout(() => {
+      mainImg.src = base + '/' + state.images[state.currentImg];
+      mainImg.style.opacity = '1';
+    }, 160);
+    thumbsEl.querySelectorAll('.rr-qv-thumb').forEach((t, i) => {
+      t.classList.toggle('active', i === state.currentImg);
+    });
+  }
+
+  /* ── WHATSAPP LINK ────────────────────────────────── */
+  function updateWA() {
+    const msg = encodeURIComponent(
+      `Hola Retro Reeves 🔥\n\nQuiero hacer este pedido:\n\n• ${state.name}\nTalla: ${state.selectedSize || '(por definir)'}\nColor: ${state.selectedColor || '(por definir)'}\nCantidad: ${state.qty}\nPrecio: $${(state.price * state.qty).toLocaleString('es-MX')} MXN\n\n¿Tienen disponibilidad?`
+    );
+    btnWa.href = `https://wa.me/5217773019146?text=${msg}`;
+  }
+
+  /* ── CARRITO ──────────────────────────────────────── */
+  function showToast(msg) {
+    toast.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2500);
+  }
+
+  btnCart.addEventListener('click', () => {
+    if (state.sizes.length && !state.selectedSize) {
+      sizeErr.classList.add('show');
+      sizesEl.querySelectorAll('.rr-qv-size-btn').forEach(b => {
+        b.style.borderColor = '#c8382a';
+        setTimeout(() => b.style.borderColor = '', 1200);
+      });
+      return;
+    }
+    const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+    cart.push({
+      slug:   state.slug,
+      name:   state.name,
+      price:  state.price,
+      size:   state.selectedSize,
+      color:  state.selectedColor,
+      qty:    state.qty,
+      image:  state.images[0] || '',
+    });
+    localStorage.setItem('cart', JSON.stringify(cart));
+    window.dispatchEvent(new Event('cartUpdated'));
+    showToast('✓ Agregado al carrito');
+    closeQV();
+  });
+
+  /* ── CANTIDAD ─────────────────────────────────────── */
+  qtyDec.addEventListener('click', () => {
+    if (state.qty > 1) { state.qty--; qtyNum.textContent = state.qty; updateWA(); }
+  });
+  qtyInc.addEventListener('click', () => {
+    if (state.qty < 10) { state.qty++; qtyNum.textContent = state.qty; updateWA(); }
+  });
+
+  /* ── NAV FLECHAS ──────────────────────────────────── */
+  prevBtn.addEventListener('click', () => setImg(state.currentImg - 1));
+  nextBtn.addEventListener('click', () => setImg(state.currentImg + 1));
+
+  /* ── TECLADO ──────────────────────────────────────── */
+  document.addEventListener('keydown', e => {
+    if (!overlay.classList.contains('open')) return;
+    if (e.key === 'Escape') closeQV();
+    if (e.key === 'ArrowLeft')  setImg(state.currentImg - 1);
+    if (e.key === 'ArrowRight') setImg(state.currentImg + 1);
+  });
+
+  /* ── CERRAR ───────────────────────────────────────── */
+  closeBtn.addEventListener('click', closeQV);
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeQV(); });
+
+  /* ── DELEGACIÓN: triggers en cards ───────────────── */
+  document.addEventListener('click', e => {
+    const btn = e.target.closest('.rr-qv-trigger');
+    if (!btn) return;
+    e.preventDefault();
+    openQV(btn.dataset);
+  });
+
+  /* ── EVENTO GLOBAL (opcional) ─────────────────────── */
+  window.addEventListener('rr:quickview', e => openQV(e.detail));
+})();
+</script>

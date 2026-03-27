@@ -181,6 +181,35 @@ export default function Navbar() {
               WhatsApp
             </a>
 
+
+            {/* BOTÓN BÚSQUEDA */}
+            <button
+              onClick={() => window.dispatchEvent(new Event("rr:search"))}
+              aria-label="Buscar productos"
+              style={{
+                display:        "flex",
+                alignItems:     "center",
+                justifyContent: "center",
+                width:          "36px",
+                height:         "36px",
+                background:     "none",
+                border:         "none",
+                cursor:         "pointer",
+                color:          textColor,
+                transition:     "color 0.3s, opacity 0.2s",
+                flexShrink:     0,
+                padding:        0,
+                opacity:        0.85,
+              }}
+              onMouseEnter={e => (e.currentTarget.style.opacity = "1")}
+              onMouseLeave={e => (e.currentTarget.style.opacity = "0.85")}
+            >
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8"/>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+            </button>
+
             {/* CARRITO */}
             <a
               href={`${BASE}/shopping-cart`}
@@ -313,6 +342,36 @@ export default function Navbar() {
             </a>
           ))}
         </nav>
+
+
+        {/* BUSCAR — mobile drawer */}
+        <button
+          onClick={() => { setMenuOpen(false); window.dispatchEvent(new Event("rr:search")); }}
+          style={{
+            display:        "flex",
+            alignItems:     "center",
+            gap:            "0.75rem",
+            background:     "none",
+            border:         "none",
+            cursor:         "pointer",
+            fontFamily:     "'PT Mono', monospace",
+            fontSize:       "0.65rem",
+            letterSpacing:  "0.12em",
+            textTransform:  "uppercase",
+            color:          "rgba(255,255,255,0.5)",
+            padding:        "0.75rem 0",
+            borderBottom:   "1px solid rgba(255,255,255,0.08)",
+            width:          "100%",
+            textAlign:      "left",
+            marginTop:      "0.5rem",
+          }}
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="11" cy="11" r="8"/>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          Buscar productos
+        </button>
 
         <a
           href={WA_URL}

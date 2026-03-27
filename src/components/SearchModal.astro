@@ -1,0 +1,547 @@
+---
+/**
+ * SearchModal.astro
+ * ─────────────────────────────────────────────────────────
+ * Modal de búsqueda global. Se activa con el botón de lupa
+ * en la navbar o con Cmd/Ctrl + K.
+ *
+ * USO:
+ *   1. Importar en Layout.astro (dentro del <body>, antes del </slot>):
+ *      import SearchModal from '../components/SearchModal.astro'
+ *      <SearchModal base={base} />
+ *
+ *   2. En navbar.tsx agregar el botón disparador:
+ *      <button onClick={() => window.dispatchEvent(new Event('rr:search'))}
+ *        aria-label="Buscar" style={{ background:'none', border:'none', cursor:'pointer' }}>
+ *        <svg width="18" height="18" ...lupa.../>
+ *      </button>
+ *
+ *   El modal lee los productos de `window.__RR_PRODUCTS__` que se
+ *   inyecta desde Layout.astro o desde la página que usa el modal.
+ * ─────────────────────────────────────────────────────────
+ */
+
+interface Props {
+  base: string;
+}
+const { base } = Astro.props;
+---
+
+<div id="rr-search-overlay" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Buscar productos">
+  <div id="rr-search-modal">
+
+    <!-- Input -->
+    <div id="rr-search-input-wrap">
+      <svg id="rr-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      <input
+        id="rr-search-input"
+        type="search"
+        placeholder="Buscar producto, categoría o talla..."
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <button id="rr-search-close" type="button" aria-label="Cerrar búsqueda">
+        <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <line x1="1" y1="1" x2="13" y2="13"/><line x1="13" y1="1" x2="1" y2="13"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Filtros rápidos -->
+    <div id="rr-search-filters">
+      <button class="rr-sf active" data-filter="all"    type="button">Todo</button>
+      <button class="rr-sf"        data-filter="drop"   type="button">Drops</button>
+      <button class="rr-sf"        data-filter="limited" type="button">Limitado</button>
+      <button class="rr-sf"        data-filter="hoodies" type="button">Hoodies</button>
+      <button class="rr-sf"        data-filter="gym"     type="button">Gym</button>
+      <button class="rr-sf"        data-filter="gorras"  type="button">Gorras</button>
+      <button class="rr-sf"        data-filter="zapatos" type="button">Zapatos</button>
+    </div>
+
+    <!-- Resultados -->
+    <div id="rr-search-results">
+      <div id="rr-search-empty">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <p>Escribe para buscar productos</p>
+      </div>
+      <div id="rr-search-grid"></div>
+    </div>
+
+    <!-- Footer -->
+    <div id="rr-search-footer">
+      <span>
+        <kbd>↑↓</kbd> navegar &nbsp;·&nbsp;
+        <kbd>↵</kbd> abrir &nbsp;·&nbsp;
+        <kbd>Esc</kbd> cerrar &nbsp;·&nbsp;
+        <kbd>⌘K</kbd> buscar
+      </span>
+      <span id="rr-search-count"></span>
+    </div>
+
+  </div>
+</div>
+
+<style is:global>
+/* ── OVERLAY ───────────────────────────────────────────── */
+#rr-search-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 4500;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 5rem 1rem 1rem;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+#rr-search-overlay.open {
+  display: flex;
+  animation: srchFade 0.18s ease;
+}
+@keyframes srchFade { from { opacity:0 } to { opacity:1 } }
+
+/* ── MODAL ─────────────────────────────────────────────── */
+#rr-search-modal {
+  background: #fff;
+  width: 100%;
+  max-width: 640px;
+  max-height: 75vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: srchSlide 0.22s cubic-bezier(0.22,1,0.36,1);
+}
+@keyframes srchSlide { from { transform:translateY(-16px);opacity:0 } to { transform:translateY(0);opacity:1 } }
+
+/* ── INPUT ─────────────────────────────────────────────── */
+#rr-search-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.9rem 1rem;
+  border-bottom: 1px solid rgba(0,0,0,0.08);
+  flex-shrink: 0;
+}
+#rr-search-icon {
+  color: rgba(0,0,0,0.3);
+  flex-shrink: 0;
+}
+#rr-search-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-family: 'Noto Sans', sans-serif;
+  font-size: 0.95rem;
+  color: #0d0d0d;
+  background: transparent;
+  box-shadow: none;
+  border-radius: 0;
+  -webkit-appearance: none;
+}
+#rr-search-input::placeholder { color: rgba(0,0,0,0.3); }
+#rr-search-input::-webkit-search-cancel-button { display: none; }
+#rr-search-close {
+  width: 28px;
+  height: 28px;
+  background: rgba(0,0,0,0.06);
+  border: none;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #0d0d0d;
+  flex-shrink: 0;
+  transition: background 0.14s;
+  box-shadow: none;
+  outline: none;
+  padding: 0;
+}
+#rr-search-close:hover { background: rgba(0,0,0,0.12); }
+
+/* ── FILTROS ───────────────────────────────────────────── */
+#rr-search-filters {
+  display: flex;
+  gap: 0.35rem;
+  padding: 0.6rem 1rem;
+  border-bottom: 1px solid rgba(0,0,0,0.07);
+  overflow-x: auto;
+  flex-shrink: 0;
+  -webkit-overflow-scrolling: touch;
+}
+#rr-search-filters::-webkit-scrollbar { display: none; }
+.rr-sf {
+  padding: 0.25rem 0.7rem;
+  background: transparent;
+  border: 1px solid rgba(0,0,0,0.12);
+  font-family: 'PT Mono', monospace;
+  font-size: 0.52rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(0,0,0,0.45);
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background 0.14s, color 0.14s, border-color 0.14s;
+  border-radius: 0;
+  box-shadow: none;
+  outline: none;
+}
+.rr-sf:hover { border-color: #0d0d0d; color: #0d0d0d; }
+.rr-sf.active { background: #0d0d0d; color: #fff; border-color: #0d0d0d; }
+
+/* ── RESULTADOS ────────────────────────────────────────── */
+#rr-search-results {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.75rem 1rem;
+}
+#rr-search-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 2.5rem 1rem;
+  color: rgba(0,0,0,0.2);
+}
+#rr-search-empty p {
+  font-family: 'PT Mono', monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin: 0;
+}
+#rr-search-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.65rem;
+}
+@media (max-width: 480px) {
+  #rr-search-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* Card resultado */
+.rr-sr-card {
+  display: block;
+  text-decoration: none;
+  color: #0d0d0d;
+  border: 1px solid rgba(0,0,0,0.09);
+  overflow: hidden;
+  transition: border-color 0.18s, transform 0.18s;
+  border-radius: 0;
+  outline: none;
+}
+.rr-sr-card:hover,
+.rr-sr-card.focused { border-color: #0d0d0d; transform: translateY(-2px); }
+.rr-sr-card__img {
+  width: 100%;
+  aspect-ratio: 3/4;
+  background: #f5f4ef;
+  overflow: hidden;
+  display: block;
+}
+.rr-sr-card__img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.rr-sr-card__info {
+  padding: 0.45rem 0.55rem 0.55rem;
+  border-top: 1px solid rgba(0,0,0,0.07);
+}
+.rr-sr-card__name {
+  font-family: 'Noto Sans', sans-serif;
+  font-weight: 700;
+  font-size: 0.72rem;
+  color: #0d0d0d;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0 0 0.08rem;
+  display: block;
+}
+.rr-sr-card__name mark {
+  background: #fde68a;
+  color: #0d0d0d;
+  border-radius: 2px;
+  padding: 0 1px;
+}
+.rr-sr-card__meta {
+  font-family: 'PT Mono', monospace;
+  font-size: 0.55rem;
+  letter-spacing: 0.06em;
+  color: rgba(0,0,0,0.38);
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: 0.2rem;
+}
+.rr-sr-card__price {
+  font-family: 'PT Mono', monospace;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #0d0d0d;
+  display: block;
+}
+.rr-sr-card__tag {
+  display: inline-block;
+  font-family: 'PT Mono', monospace;
+  font-size: 0.42rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 1px 5px;
+  margin-top: 0.2rem;
+  line-height: 1.6;
+}
+.rr-sr-card__tag--drop    { background: #c8382a; color: #fff; }
+.rr-sr-card__tag--limited { background: #0d0d0d; color: #fff; }
+
+/* Sin resultados */
+#rr-search-noresults {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 2.5rem 1rem;
+  text-align: center;
+}
+#rr-search-noresults p {
+  font-family: 'PT Mono', monospace;
+  font-size: 0.58rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(0,0,0,0.28);
+  margin: 0;
+}
+#rr-search-noresults strong {
+  color: #0d0d0d;
+}
+
+/* ── FOOTER ────────────────────────────────────────────── */
+#rr-search-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.55rem 1rem;
+  border-top: 1px solid rgba(0,0,0,0.07);
+  flex-shrink: 0;
+  background: #faf9f6;
+}
+#rr-search-footer span {
+  font-family: 'PT Mono', monospace;
+  font-size: 0.48rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(0,0,0,0.28);
+}
+kbd {
+  background: rgba(0,0,0,0.07);
+  border: 1px solid rgba(0,0,0,0.12);
+  border-radius: 3px;
+  padding: 1px 4px;
+  font-family: 'PT Mono', monospace;
+  font-size: 0.48rem;
+}
+#rr-search-count {
+  color: rgba(0,0,0,0.35) !important;
+}
+</style>
+
+<script define:vars={{ base }}>
+(function() {
+  const overlay   = document.getElementById('rr-search-overlay');
+  const input     = document.getElementById('rr-search-input');
+  const closeBtn  = document.getElementById('rr-search-close');
+  const grid      = document.getElementById('rr-search-grid');
+  const emptyEl   = document.getElementById('rr-search-empty');
+  const countEl   = document.getElementById('rr-search-count');
+  const filterBtns= document.querySelectorAll('.rr-sf');
+
+  if (!overlay) return;
+
+  let products = [];
+  let query    = '';
+  let filter   = 'all';
+  let focused  = -1; // índice de card enfocada con teclado
+
+  /* ── CARGAR PRODUCTOS ─────────────────────────────── */
+  // Intenta desde window.__RR_PRODUCTS__ (inyectado por Layout o páginas)
+  // Si no, hace fetch del JSON directamente.
+  function loadProducts() {
+    if (window.__RR_PRODUCTS__) {
+      products = window.__RR_PRODUCTS__;
+      return;
+    }
+    // Fetch desde products.json via ruta pública
+    const b = window.__RR_BASE__ || '';
+    fetch(b + '/api/products.json')
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .catch(() => fetch(b + '/data.json').then(r => r.json()).catch(() => []))
+      .then(data => {
+        if (Array.isArray(data)) products = data;
+      });
+  }
+
+  /* ── OPEN / CLOSE ─────────────────────────────────── */
+  function openSearch() {
+    loadProducts();
+    overlay.classList.add('open');
+    overlay.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+    setTimeout(() => input.focus(), 80);
+    renderResults('');
+  }
+
+  function closeSearch() {
+    overlay.classList.remove('open');
+    overlay.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+    input.value = '';
+    query = '';
+    focused = -1;
+  }
+
+  /* ── FILTRAR ──────────────────────────────────────── */
+  function getFiltered(q) {
+    const term = q.toLowerCase().trim();
+    return products.filter(p => {
+      // filtro de categoría/tipo
+      if (filter === 'drop')    { if (!p.drop)     return false; }
+      if (filter === 'limited') { if (!p.limited)  return false; }
+      if (!['all','drop','limited'].includes(filter)) {
+        if (p.category !== filter) return false;
+      }
+      // búsqueda de texto
+      if (!term) return true;
+      return (
+        p.name.toLowerCase().includes(term) ||
+        p.category.toLowerCase().includes(term) ||
+        (p.description || '').toLowerCase().includes(term) ||
+        (p.sizes || []).some(s => s.toLowerCase().includes(term)) ||
+        (p.colors || []).some(c => c.toLowerCase().includes(term))
+      );
+    });
+  }
+
+  /* ── HIGHLIGHT ────────────────────────────────────── */
+  function hl(text, term) {
+    if (!term) return text;
+    const re = new RegExp('(' + term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+    return text.replace(re, '<mark>$1</mark>');
+  }
+
+  /* ── RENDER ───────────────────────────────────────── */
+  function renderResults(q) {
+    focused = -1;
+    const results = getFiltered(q);
+    const term    = q.toLowerCase().trim();
+
+    if (!q && filter === 'all') {
+      // Estado inicial: sin búsqueda ni filtro
+      emptyEl.style.display   = 'flex';
+      grid.style.display      = 'none';
+      countEl.textContent     = '';
+      return;
+    }
+
+    emptyEl.style.display = 'none';
+    grid.style.display    = 'grid';
+
+    if (!results.length) {
+      grid.innerHTML = `
+        <div id="rr-search-noresults" style="display:flex;flex-direction:column;align-items:center;gap:.5rem;padding:2.5rem 1rem;grid-column:1/-1;text-align:center;">
+          <p style="font-family:'PT Mono',monospace;font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;color:rgba(0,0,0,.28);margin:0;">
+            Sin resultados para <strong style="color:#0d0d0d;">"${q}"</strong>
+          </p>
+        </div>`;
+      countEl.textContent = '0 resultados';
+      return;
+    }
+
+    countEl.textContent = results.length + ' resultado' + (results.length !== 1 ? 's' : '');
+
+    grid.innerHTML = results.map((p, i) => {
+      const img = p.images?.[0] ? `${base}/${p.images[0]}` : '';
+      const tags = [
+        p.drop    ? '<span class="rr-sr-card__tag rr-sr-card__tag--drop">Drop</span>'       : '',
+        p.limited ? '<span class="rr-sr-card__tag rr-sr-card__tag--limited">Limitado</span>' : '',
+      ].join('');
+      return `
+      <a href="${base}/product/${p.slug}" class="rr-sr-card" data-idx="${i}" tabindex="0">
+        <div class="rr-sr-card__img">
+          ${img ? `<img src="${img}" alt="${p.name}" loading="lazy"/>` : ''}
+        </div>
+        <div class="rr-sr-card__info">
+          <span class="rr-sr-card__name">${hl(p.name, term)}</span>
+          <span class="rr-sr-card__meta">${p.category}${p.sizes?.length ? ' · ' + p.sizes.join('/') : ''}</span>
+          <span class="rr-sr-card__price">$${p.price.toLocaleString('es-MX')} MXN</span>
+          ${tags}
+        </div>
+      </a>`;
+    }).join('');
+  }
+
+  /* ── NAVEGACIÓN TECLADO ───────────────────────────── */
+  function moveFocus(dir) {
+    const cards = grid.querySelectorAll('.rr-sr-card');
+    if (!cards.length) return;
+    cards.forEach(c => c.classList.remove('focused'));
+    focused = Math.max(0, Math.min(cards.length - 1, focused + dir));
+    cards[focused].classList.add('focused');
+    cards[focused].scrollIntoView({ block: 'nearest' });
+  }
+
+  /* ── EVENTOS ──────────────────────────────────────── */
+  input.addEventListener('input', () => {
+    query = input.value;
+    renderResults(query);
+  });
+
+  filterBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      filterBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      filter = btn.dataset.filter;
+      renderResults(query);
+    });
+  });
+
+  closeBtn.addEventListener('click', closeSearch);
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeSearch(); });
+
+  document.addEventListener('keydown', e => {
+    // Abrir con Cmd+K / Ctrl+K
+    if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      e.preventDefault();
+      overlay.classList.contains('open') ? closeSearch() : openSearch();
+      return;
+    }
+    if (!overlay.classList.contains('open')) return;
+    if (e.key === 'Escape')     { closeSearch(); return; }
+    if (e.key === 'ArrowDown')  { e.preventDefault(); moveFocus(1);  return; }
+    if (e.key === 'ArrowUp')    { e.preventDefault(); moveFocus(-1); return; }
+    if (e.key === 'Enter' && focused >= 0) {
+      const card = grid.querySelectorAll('.rr-sr-card')[focused];
+      if (card) { window.location.href = card.href; }
+      return;
+    }
+  });
+
+  // Eventos globales
+  window.addEventListener('rr:search', openSearch);
+  window.addEventListener('rr:search:open', openSearch);
+
+  // Botón de búsqueda en cualquier lugar con data-rr-search
+  document.addEventListener('click', e => {
+    if (e.target.closest('[data-rr-search]')) openSearch();
+  });
+})();
+</script>

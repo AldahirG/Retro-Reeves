@@ -7,396 +7,910 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 ---
 
 <Layout title="Carrito — Retro Reeves">
-<style>
-  /* Reset Bootstrap en esta página */
-  .rr-cart * { box-sizing: border-box !important; }
-  .rr-cart img { max-width: none !important; }
-  .rr-cart button { border-radius: 0 !important; box-shadow: none !important; outline: none !important; }
-  .rr-cart button:focus { box-shadow: none !important; outline: none !important; }
-  .rr-cart input, .rr-cart textarea { border-radius: 0 !important; box-shadow: none !important; }
-  .rr-cart input:focus, .rr-cart textarea:focus { box-shadow: none !important; }
-  .rr-cart a { text-decoration: none !important; }
+<style is:global>
+/* ═══════════════════════════════════════════════════════
+   RESET COMPLETO — neutralizar Bootstrap en toda la página
+   is:global requerido: los tickets y controles son generados
+   por JS (innerHTML) y Astro no puede scopearlos.
+   ══════════════════════════════════════════════════════ */
+.rr-cart,
+.rr-cart *,
+.rr-cart *::before,
+.rr-cart *::after {
+  box-sizing: border-box !important;
+}
+.rr-cart img { max-width: none !important; }
+.rr-cart a   { text-decoration: none !important; }
 
-  /* Navbar forzada sólida */
-  .rr-cart nav[role="navigation"] {
-    background: #0d0d0d !important;
-    backdrop-filter: none !important;
-    border-bottom: none !important;
-  }
-  .rr-cart nav[role="navigation"] a,
-  .rr-cart nav[role="navigation"] span { color: #ffffff !important; }
-  .rr-cart nav[role="navigation"] svg { stroke: #ffffff; color: #ffffff; }
+/* Bootstrap resetea display en botones; lo forzamos aquí */
+.rr-cart button,
+.rr-cart .rr-qty__btn,
+.rr-cart .rr-ticket__remove,
+.rr-cart .rr-btn,
+.rr-cart .rr-back {
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  outline: none !important;
+  -webkit-appearance: none !important;
+}
 
-  /* Badge contador carrito en navbar oscura */
-  .rr-cart nav[role="navigation"] span[style*="background: rgb(13"] { background: #fff !important; color: #0d0d0d !important; }
+/* Navbar oscura */
+.rr-cart nav[role="navigation"] {
+  background: #0d0d0d !important;
+  backdrop-filter: none !important;
+  border-bottom: none !important;
+}
+.rr-cart nav[role="navigation"] a,
+.rr-cart nav[role="navigation"] span { color: #fff !important; }
+.rr-cart nav[role="navigation"] svg  { stroke: #fff; color: #fff; }
 
-  /* ── HERO BANNER ─────────────────── */
-  .rr-cart-hero {
-    background: #0d0d0d;
-    padding: 3rem 0 2.5rem;
-    margin-bottom: 0;
-  }
-  .rr-cart-hero__title {
-    font-family: "Noto Sans", sans-serif;
-    font-weight: 800;
-    font-size: clamp(2rem, 5vw, 3.5rem);
-    letter-spacing: -0.04em;
-    color: #fff;
-    margin-bottom: 0.3rem;
-  }
-  .rr-cart-hero__sub {
-    font-family: "PT Mono", monospace;
-    font-size: 0.62rem;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    color: rgba(255,255,255,0.4);
-  }
+/* ═══════════════════════════════════════════════════════
+   HERO
+   ══════════════════════════════════════════════════════ */
+.rr-hero {
+  background: #0d0d0d;
+  padding: 5.5rem 0 2.5rem;
+}
+.rr-hero__title {
+  font-family: 'Noto Sans', sans-serif !important;
+  font-weight: 800 !important;
+  font-size: clamp(2.2rem, 5vw, 3.6rem) !important;
+  letter-spacing: -0.04em !important;
+  color: #fff !important;
+  margin: 0 0 0.3rem !important;
+  line-height: 1 !important;
+}
+.rr-hero__sub {
+  font-family: 'PT Mono', monospace !important;
+  font-size: 0.6rem !important;
+  letter-spacing: 0.15em !important;
+  text-transform: uppercase !important;
+  color: rgba(255,255,255,0.38) !important;
+  margin: 0 !important;
+}
 
-  /* ── STEPS ───────────────────────── */
-  .rr-steps {
-    display: flex;
-    align-items: center;
-    padding: 1rem 0;
-    overflow-x: auto;
-    gap: 0;
-    border-bottom: 1px solid rgba(0,0,0,0.08);
-    background: #fff;
-  }
-  .rr-step {
-    display: flex; align-items: center; gap: 0.45rem;
-    font-family: "PT Mono", monospace;
-    font-size: 0.58rem; letter-spacing: 0.1em; text-transform: uppercase;
-    color: rgba(0,0,0,0.28); white-space: nowrap; flex-shrink: 0;
-    transition: color 0.3s;
-  }
-  .rr-step.active { color: #0d0d0d; }
-  .rr-step.done   { color: #16a34a; }
-  .rr-step__num {
-    width: 22px; height: 22px; border-radius: 50%;
-    border: 1.5px solid currentColor;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 0.58rem; font-weight: 700; flex-shrink: 0;
-    transition: all 0.3s;
-  }
-  .rr-step.active .rr-step__num { background: #0d0d0d; color: #fff; border-color: #0d0d0d; }
-  .rr-step.done   .rr-step__num { background: #16a34a; color: #fff; border-color: #16a34a; }
-  .rr-step__sep { width: 32px; height: 1px; background: rgba(0,0,0,0.12); margin: 0 0.5rem; flex-shrink: 0; }
+/* ═══════════════════════════════════════════════════════
+   BARRA ENVÍO GRATIS
+   ══════════════════════════════════════════════════════ */
+.rr-sb-wrap {
+  background: #fff;
+  border-bottom: 1px solid rgba(0,0,0,0.10);
+  padding: 0.8rem 0;
+}
+.rr-sb-row {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  margin-bottom: 0.4rem !important;
+  gap: 0.5rem !important;
+}
+.rr-sb-lbl {
+  font-family: 'PT Mono', monospace !important;
+  font-size: 0.58rem !important;
+  letter-spacing: 0.1em !important;
+  text-transform: uppercase !important;
+  color: rgba(0,0,0,0.45) !important;
+  margin: 0 !important;
+  line-height: 1.4 !important;
+}
+.rr-sb-lbl strong { color: #0d0d0d !important; font-weight: 700 !important; }
+.rr-sb-lbl.free strong { color: #16a34a !important; }
+.rr-sb-pct {
+  font-family: 'PT Mono', monospace !important;
+  font-size: 0.55rem !important;
+  color: rgba(0,0,0,0.3) !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+}
+.rr-sb-track {
+  height: 7px !important;
+  background: rgba(0,0,0,0.12) !important;
+  border-radius: 4px !important;
+  overflow: hidden !important;
+}
+.rr-sb-bar {
+  height: 7px !important;
+  background: #16a34a !important;
+  border-radius: 4px !important;
+  width: 0% !important;
+  transition: width 0.7s cubic-bezier(0.22,0.61,0.36,1) !important;
+}
+.rr-sb-bar.free { background: #16a34a !important; }
 
-  /* ── MAIN ────────────────────────── */
-  .rr-main {
-    background: #f5f5f3;
-    padding: 2rem 0 5rem;
-    min-height: 60vh;
-  }
+/* ═══════════════════════════════════════════════════════
+   STEPS
+   ══════════════════════════════════════════════════════ */
+.rr-steps-wrap {
+  background: #f5f4ef;
+  border-bottom: 1px solid rgba(0,0,0,0.08);
+}
+.rr-steps {
+  display: flex !important;
+  align-items: center !important;
+  padding: 0.85rem 0 !important;
+  gap: 0 !important;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch;
+}
+.rr-step {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.38rem !important;
+  font-family: 'PT Mono', monospace !important;
+  font-size: 0.55rem !important;
+  letter-spacing: 0.12em !important;
+  text-transform: uppercase !important;
+  color: rgba(0,0,0,0.28) !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+  transition: color 0.3s !important;
+}
+.rr-step.active { color: #0d0d0d !important; }
+.rr-step.done   { color: #16a34a !important; }
+.rr-step__num {
+  width: 20px !important;
+  height: 20px !important;
+  border-radius: 50% !important;
+  border: 1.5px solid currentColor !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 0.55rem !important;
+  font-weight: 700 !important;
+  flex-shrink: 0 !important;
+  transition: all 0.3s !important;
+  line-height: 1 !important;
+}
+.rr-step.active .rr-step__num { background: #0d0d0d !important; color: #fff !important; border-color: #0d0d0d !important; }
+.rr-step.done   .rr-step__num { background: #16a34a !important; color: #fff !important; border-color: #16a34a !important; }
+.rr-step__sep {
+  width: 24px !important;
+  height: 1px !important;
+  background: rgba(0,0,0,0.12) !important;
+  margin: 0 0.35rem !important;
+  flex-shrink: 0 !important;
+}
+
+/* ═══════════════════════════════════════════════════════
+   LAYOUT PRINCIPAL
+   ══════════════════════════════════════════════════════ */
+.rr-main {
+  background: #f5f4ef;
+  padding: 1.5rem 0 5rem;
+  min-height: 55vh;
+}
+.rr-layout {
+  display: grid !important;
+  grid-template-columns: 1fr 320px !important;
+  gap: 1.25rem !important;
+  align-items: start !important;
+}
+/* Móvil: sidebar ABAJO del contenido de items */
+@media (max-width: 860px) {
   .rr-layout {
-    display: grid;
-    grid-template-columns: 1fr 340px;
-    gap: 1.5rem;
-    align-items: start;
+    grid-template-columns: 1fr !important;
   }
-  @media (max-width: 860px) {
-    .rr-layout { grid-template-columns: 1fr; }
-    .rr-sidebar { order: -1; }
+  .rr-col-left {
+    order: 1 !important;
   }
+  .rr-sidebar {
+    order: 2 !important;
+    position: static !important;
+    top: auto !important;
+  }
+}
 
-  /* ── PANEL ───────────────────────── */
-  .rr-panel {
-    background: #fff;
-    padding: 1.5rem;
-  }
-  .rr-panel__title {
-    font-family: "PT Mono", monospace;
-    font-size: 0.58rem; letter-spacing: 0.16em; text-transform: uppercase;
-    color: rgba(0,0,0,0.35); margin-bottom: 1.25rem;
-    padding-bottom: 0.75rem;
-    border-bottom: 1px solid rgba(0,0,0,0.08);
-  }
+/* ═══════════════════════════════════════════════════════
+   PANEL
+   ══════════════════════════════════════════════════════ */
+.rr-panel {
+  background: #fff !important;
+  padding: 1.35rem !important;
+  margin-bottom: 1rem !important;
+}
+.rr-panel__title {
+  font-family: 'PT Mono', monospace !important;
+  font-size: 0.52rem !important;
+  letter-spacing: 0.18em !important;
+  text-transform: uppercase !important;
+  color: rgba(0,0,0,0.3) !important;
+  margin: 0 0 1.2rem !important;
+  padding-bottom: 0.65rem !important;
+  border-bottom: 1px solid rgba(0,0,0,0.08) !important;
+  display: block !important;
+}
 
-  /* ── TABLE HEADER ────────────────── */
-  .rr-table-head {
-    display: grid;
-    grid-template-columns: 64px 1fr 110px 90px;
-    gap: 1rem;
-    padding-bottom: 0.6rem;
-    border-bottom: 2px solid #0d0d0d;
-    margin-bottom: 0;
-  }
-  .rr-table-head span {
-    font-family: "PT Mono", monospace;
-    font-size: 0.52rem; letter-spacing: 0.14em; text-transform: uppercase;
-    color: rgba(0,0,0,0.38);
-  }
-  @media (max-width: 540px) {
-    .rr-table-head { grid-template-columns: 48px 1fr 88px; }
-    .rr-table-head .rr-th-price { display: none; }
-  }
+/* ═══════════════════════════════════════════════════════
+   TICKET — item del carrito
+   ══════════════════════════════════════════════════════ */
+.rr-ticket {
+  position: relative !important;
+  border: 1px solid rgba(0,0,0,0.10) !important;
+  background: #fff !important;
+  margin-bottom: 0.75rem !important;
+  overflow: hidden !important;
+  border-radius: 0 !important;
+  transition: transform 0.2s ease, opacity 0.28s ease !important;
+}
+.rr-ticket:last-child { margin-bottom: 0 !important; }
+.rr-ticket::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important; left: 0 !important;
+  width: 0 !important; height: 100% !important;
+  background: transparent !important;
+}
+.rr-ticket.drop::before { background: #c8382a !important; }
+.rr-ticket.removing {
+  transform: translateX(28px) !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
 
-  /* ── ITEM ROW ────────────────────── */
-  .rr-item {
-    display: grid;
-    grid-template-columns: 64px 1fr 110px 90px;
-    gap: 1rem;
-    padding: 1rem 0;
-    border-bottom: 1px solid rgba(0,0,0,0.07);
-    align-items: center;
-    transition: background 0.15s;
-  }
-  .rr-item:hover { background: #fafafa; margin: 0 -1.5rem; padding: 1rem 1.5rem; }
-  @media (max-width: 540px) {
-    .rr-item { grid-template-columns: 48px 1fr 88px; }
-    .rr-item .rr-item-price { display: none; }
-  }
+.rr-ticket__body {
+  display: grid !important;
+  grid-template-columns: 70px 1fr !important;
+  gap: 0 !important;
+}
+@media (max-width: 400px) {
+  .rr-ticket__body { grid-template-columns: 56px 1fr !important; }
+}
 
-  .rr-item__img {
-    width: 64px; height: 80px;
-    overflow: hidden; background: #f5f5f3;
-    flex-shrink: 0; display: block;
-  }
-  .rr-item__img img {
-    width: 64px !important; height: 80px !important;
-    max-width: 64px !important; object-fit: cover !important;
-    display: block !important;
-  }
-  @media (max-width: 540px) {
-    .rr-item__img { width: 48px; height: 60px; }
-    .rr-item__img img { width: 48px !important; height: 60px !important; max-width: 48px !important; }
-  }
+.rr-ticket__img {
+  width: 70px !important;
+  height: 90px !important;
+  overflow: hidden !important;
+  background: #f5f4ef !important;
+  flex-shrink: 0 !important;
+  display: block !important;
+}
+.rr-ticket__img img {
+  width: 70px !important;
+  height: 90px !important;
+  max-width: 70px !important;
+  object-fit: cover !important;
+  display: block !important;
+}
+@media (max-width: 400px) {
+  .rr-ticket__img       { width: 56px !important; height: 72px !important; }
+  .rr-ticket__img img   { width: 56px !important; height: 72px !important; max-width: 56px !important; }
+}
 
-  .rr-item__name {
-    font-family: "Noto Sans", sans-serif !important;
-    font-weight: 700 !important; font-size: 0.88rem !important;
-    margin-bottom: 0.2rem !important; line-height: 1.3 !important;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    color: #0d0d0d !important;
-  }
-  .rr-item__meta {
-    font-family: "PT Mono", monospace !important;
-    font-size: 0.56rem !important; letter-spacing: 0.07em !important;
-    text-transform: uppercase !important; color: rgba(0,0,0,0.42) !important;
-    margin-bottom: 0.5rem !important; line-height: 1.4 !important;
-    display: block !important;
-  }
-  .rr-item__remove {
-    font-family: "PT Mono", monospace !important;
-    font-size: 0.52rem !important; letter-spacing: 0.06em !important;
-    text-transform: uppercase !important;
-    color: rgba(0,0,0,0.28) !important; background: none !important;
-    border: none !important; cursor: pointer !important;
-    padding: 0 !important; transition: color 0.2s;
-    display: inline-block !important; line-height: 1 !important;
-  }
-  .rr-item__remove:hover { color: #e63946 !important; }
+.rr-ticket__info {
+  padding: 0.7rem 2.2rem 0 0.85rem !important;
+}
+.rr-ticket__name {
+  font-family: 'Noto Sans', sans-serif !important;
+  font-weight: 700 !important;
+  font-size: 0.88rem !important;
+  color: #0d0d0d !important;
+  margin: 0 0 0.18rem !important;
+  line-height: 1.25 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  display: block !important;
+}
+.rr-ticket__meta {
+  font-family: 'PT Mono', monospace !important;
+  font-size: 0.54rem !important;
+  letter-spacing: 0.09em !important;
+  text-transform: uppercase !important;
+  color: rgba(0,0,0,0.38) !important;
+  display: block !important;
+  line-height: 1.5 !important;
+  margin: 0 !important;
+}
+.rr-ticket__badge {
+  display: inline-block !important;
+  background: #c8382a !important;
+  color: #fff !important;
+  font-family: 'PT Mono', monospace !important;
+  font-size: 0.42rem !important;
+  letter-spacing: 0.1em !important;
+  text-transform: uppercase !important;
+  padding: 1px 5px !important;
+  margin-left: 0.3rem !important;
+  vertical-align: middle !important;
+  line-height: 1.6 !important;
+  border-radius: 0 !important;
+}
+.rr-ticket__sep {
+  border: none !important;
+  border-top: 1.5px dashed rgba(0,0,0,0.10) !important;
+  margin: 0 0.85rem !important;
+  display: block !important;
+}
+.rr-ticket__foot {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 0.5rem 0.85rem 0.65rem !important;
+  gap: 0.5rem !important;
+}
+.rr-ticket__price {
+  font-family: 'PT Mono', monospace !important;
+  font-size: 0.9rem !important;
+  font-weight: 700 !important;
+  color: #0d0d0d !important;
+  letter-spacing: 0.02em !important;
+  line-height: 1 !important;
+}
+.rr-ticket__price-unit {
+  font-family: 'PT Mono', monospace !important;
+  font-size: 0.5rem !important;
+  color: rgba(0,0,0,0.3) !important;
+  font-weight: 400 !important;
+  margin-left: 0.18rem !important;
+  display: inline !important;
+}
+.rr-ticket__remove {
+  position: absolute !important;
+  top: 0.4rem !important;
+  right: 0.45rem !important;
+  background: none !important;
+  border: none !important;
+  cursor: pointer !important;
+  padding: 2px 4px !important;
+  font-family: 'PT Mono', monospace !important;
+  font-size: 0.46rem !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+  color: rgba(0,0,0,0.22) !important;
+  line-height: 1 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  transition: color 0.18s !important;
+  display: inline-block !important;
+}
+.rr-ticket__remove:hover { color: #c8382a !important; }
 
-  /* QTY */
-  .rr-qty {
-    display: inline-flex; align-items: stretch;
-    border: 1px solid rgba(0,0,0,0.18); height: 30px; overflow: hidden;
-  }
-  .rr-qty__btn {
-    width: 28px; height: 30px; flex-shrink: 0;
-    background: #fff; border: none; cursor: pointer;
-    font-family: "PT Mono", monospace; font-size: 14px;
-    color: #0d0d0d; display: flex; align-items: center;
-    justify-content: center; padding: 0; line-height: 1;
-    transition: background 0.15s;
-  }
-  .rr-qty__btn:hover { background: #f5f5f3; }
-  .rr-qty__num {
-    width: 30px; height: 30px;
-    display: flex; align-items: center; justify-content: center;
-    font-family: "PT Mono", monospace; font-size: 0.75rem; font-weight: 700;
-    border-left: 1px solid rgba(0,0,0,0.12); border-right: 1px solid rgba(0,0,0,0.12);
-    background: #fff; padding: 0;
-  }
+/* ═══════════════════════════════════════════════════════
+   CONTROLES CANTIDAD
+   — Todo con !important para vencer Bootstrap
+   ══════════════════════════════════════════════════════ */
+.rr-qty {
+  display: inline-flex !important;
+  align-items: stretch !important;
+  border: 1px solid rgba(0,0,0,0.16) !important;
+  height: 30px !important;
+  overflow: hidden !important;
+  border-radius: 0 !important;
+  flex-shrink: 0 !important;
+}
+.rr-qty .rr-qty__btn {
+  width: 28px !important;
+  height: 30px !important;
+  min-width: 28px !important;
+  max-width: 28px !important;
+  flex: 0 0 28px !important;
+  background: #f5f4ef !important;
+  border: none !important;
+  border-radius: 0 !important;
+  cursor: pointer !important;
+  font-family: 'PT Mono', monospace !important;
+  font-size: 16px !important;
+  font-weight: 400 !important;
+  color: #0d0d0d !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  line-height: 1 !important;
+  box-shadow: none !important;
+  outline: none !important;
+  transition: background 0.14s, color 0.14s !important;
+  -webkit-appearance: none !important;
+}
+.rr-qty .rr-qty__btn:hover {
+  background: #0d0d0d !important;
+  color: #fff !important;
+}
+.rr-qty .rr-qty__btn:active {
+  transform: scale(0.9) !important;
+}
+.rr-qty__num {
+  width: 32px !important;
+  min-width: 32px !important;
+  height: 30px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-family: 'PT Mono', monospace !important;
+  font-size: 0.78rem !important;
+  font-weight: 700 !important;
+  color: #0d0d0d !important;
+  border-left: 1px solid rgba(0,0,0,0.10) !important;
+  border-right: 1px solid rgba(0,0,0,0.10) !important;
+  background: #fff !important;
+  padding: 0 !important;
+  line-height: 1 !important;
+  transition: transform 0.14s !important;
+  user-select: none !important;
+}
+.rr-qty__num.bump { transform: scale(1.3) !important; }
 
-  .rr-item-price {
-    font-family: "PT Mono", monospace;
-    font-weight: 700; font-size: 0.88rem; text-align: right;
-  }
+/* ═══════════════════════════════════════════════════════
+   ESTADO VACÍO
+   ══════════════════════════════════════════════════════ */
+.rr-empty {
+  text-align: center !important;
+  padding: 3.5rem 1rem !important;
+}
+.rr-empty__icon  { font-size: 2rem !important; opacity: 0.08 !important; margin-bottom: 0.8rem !important; display: block !important; }
+.rr-empty__title { font-family: 'Noto Sans', sans-serif !important; font-weight: 800 !important; font-size: 1rem !important; letter-spacing: -0.02em !important; margin: 0 0 0.3rem !important; color: #0d0d0d !important; }
+.rr-empty__sub   { font-family: 'PT Mono', monospace !important; font-size: 0.56rem !important; letter-spacing: 0.1em !important; text-transform: uppercase !important; color: rgba(0,0,0,0.28) !important; margin-bottom: 1.2rem !important; display: block !important; }
 
-  /* ── EMPTY ───────────────────────── */
-  .rr-empty {
-    text-align: center; padding: 4rem 1rem;
-  }
-  .rr-empty__icon { font-size: 2.5rem; opacity: 0.1; margin-bottom: 1rem; }
-  .rr-empty__title { font-weight: 800; font-size: 1.1rem; letter-spacing: -0.02em; margin-bottom: 0.4rem; }
-  .rr-empty__sub {
-    font-family: "PT Mono", monospace; font-size: 0.58rem;
-    letter-spacing: 0.1em; text-transform: uppercase;
-    color: rgba(0,0,0,0.3); margin-bottom: 1.25rem;
-  }
+/* ═══════════════════════════════════════════════════════
+   SUGERIDOS
+   ══════════════════════════════════════════════════════ */
+.rr-sug-head {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.65rem !important;
+  margin-bottom: 0.85rem !important;
+}
+.rr-sug-title {
+  font-family: 'PT Mono', monospace !important;
+  font-size: 0.52rem !important;
+  letter-spacing: 0.16em !important;
+  text-transform: uppercase !important;
+  color: rgba(0,0,0,0.3) !important;
+  white-space: nowrap !important;
+  margin: 0 !important;
+}
+.rr-sug-line { flex: 1 !important; height: 1px !important; background: rgba(0,0,0,0.08) !important; }
+.rr-sug-grid {
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr) !important;
+  gap: 0.65rem !important;
+}
+@media (max-width: 420px) {
+  .rr-sug-grid { grid-template-columns: repeat(2, 1fr) !important; }
+}
+.rr-sug-card {
+  background: #fff !important;
+  border: 1px solid rgba(0,0,0,0.09) !important;
+  overflow: hidden !important;
+  display: block !important;
+  transition: border-color 0.2s, transform 0.2s !important;
+  border-radius: 0 !important;
+}
+.rr-sug-card:hover { border-color: #0d0d0d !important; transform: translateY(-2px) !important; }
+.rr-sug-card__img {
+  width: 100% !important;
+  aspect-ratio: 3/4 !important;
+  background: #f5f4ef !important;
+  overflow: hidden !important;
+  display: block !important;
+}
+.rr-sug-card__img img {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  object-fit: cover !important;
+  display: block !important;
+  transition: transform 0.4s !important;
+}
+.rr-sug-card:hover .rr-sug-card__img img { transform: scale(1.04) !important; }
+.rr-sug-card__info { padding: 0.45rem 0.55rem 0.55rem !important; }
+.rr-sug-card__name {
+  font-family: 'Noto Sans', sans-serif !important;
+  font-weight: 700 !important;
+  font-size: 0.7rem !important;
+  color: #0d0d0d !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  margin: 0 0 0.08rem !important;
+  display: block !important;
+}
+.rr-sug-card__price {
+  font-family: 'PT Mono', monospace !important;
+  font-size: 0.68rem !important;
+  font-weight: 700 !important;
+  color: #0d0d0d !important;
+  display: block !important;
+  margin: 0 !important;
+}
 
-  /* ── SIDEBAR ─────────────────────── */
-  .rr-sidebar { position: sticky; top: 80px; }
-  .rr-summary {
-    background: #fff; padding: 1.5rem;
-    border-top: 3px solid #0d0d0d;
-  }
-  .rr-summary__title {
-    font-family: "PT Mono", monospace; font-size: 0.56rem;
-    letter-spacing: 0.16em; text-transform: uppercase;
-    color: rgba(0,0,0,0.32); margin-bottom: 1.1rem;
-  }
-  .rr-summary__mini {
-    display: none; flex-direction: column; gap: 0.6rem;
-    margin-bottom: 1rem; padding-bottom: 1rem;
-    border-bottom: 1px solid rgba(0,0,0,0.08);
-  }
-  .rr-summary__line {
-    display: flex; justify-content: space-between; align-items: baseline;
-    margin-bottom: 0.4rem;
-  }
-  .rr-summary__line-lbl {
-    font-family: "PT Mono", monospace; font-size: 0.58rem;
-    letter-spacing: 0.08em; text-transform: uppercase;
-    color: rgba(0,0,0,0.38);
-  }
-  .rr-summary__line-val {
-    font-family: "PT Mono", monospace; font-size: 0.78rem; font-weight: 700;
-  }
-  .rr-summary__divider { height: 1px; background: rgba(0,0,0,0.08); margin: 0.75rem 0; }
-  .rr-summary__total {
-    display: flex; justify-content: space-between; align-items: baseline;
-    margin-bottom: 1.25rem;
-  }
-  .rr-summary__total-lbl { font-weight: 800; font-size: 1rem; letter-spacing: -0.02em; }
-  .rr-summary__total-val { font-family: "PT Mono", monospace; font-weight: 700; font-size: 1.15rem; }
+/* ═══════════════════════════════════════════════════════
+   SIDEBAR
+   ══════════════════════════════════════════════════════ */
+.rr-sidebar { position: sticky !important; top: 76px !important; }
+@media (max-width: 860px) { .rr-sidebar { position: static !important; top: auto !important; } }
 
-  /* ── BUTTONS ─────────────────────── */
-  .rr-btn {
-    display: flex; align-items: center; justify-content: center; gap: 0.5rem;
-    font-family: "PT Mono", monospace; font-size: 0.65rem;
-    letter-spacing: 0.12em; text-transform: uppercase;
-    padding: 0.9rem; border: 1px solid; cursor: pointer;
-    font-weight: 700; width: 100%; margin-bottom: 0.5rem;
-    transition: opacity 0.2s, background 0.2s, border-color 0.2s;
-    text-decoration: none !important;
-  }
-  .rr-btn--dark    { background: #0d0d0d; color: #fff; border-color: #0d0d0d; }
-  .rr-btn--dark:hover    { opacity: 0.82; }
-  .rr-btn--outline { background: #fff; color: #0d0d0d; border-color: rgba(0,0,0,0.2); }
-  .rr-btn--outline:hover { border-color: #0d0d0d; }
-  .rr-btn--wa      { background: #25d366; color: #fff; border-color: #25d366; }
-  .rr-btn--wa:hover { opacity: 0.9; }
-  .rr-btn[disabled] { opacity: 0.35; pointer-events: none; cursor: not-allowed; }
-  .rr-summary__note {
-    font-family: "PT Mono", monospace; font-size: 0.5rem; letter-spacing: 0.04em;
-    text-align: center; color: rgba(0,0,0,0.25); text-transform: uppercase;
-    margin-top: 0.4rem; line-height: 1.7;
-  }
+.rr-summary {
+  background: #0d0d0d !important;
+  padding: 1.3rem !important;
+  color: #fff !important;
+}
+.rr-summary__title {
+  font-family: 'PT Mono', monospace !important;
+  font-size: 0.5rem !important;
+  letter-spacing: 0.18em !important;
+  text-transform: uppercase !important;
+  color: rgba(255,255,255,0.32) !important;
+  margin: 0 0 0.9rem !important;
+  display: block !important;
+}
+.rr-metrics {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 0.5rem !important;
+  margin-bottom: 0.85rem !important;
+}
+.rr-metric {
+  background: rgba(255,255,255,0.06) !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  padding: 0.6rem 0.7rem !important;
+}
+.rr-metric__lbl {
+  font-family: 'PT Mono', monospace !important;
+  font-size: 0.46rem !important;
+  letter-spacing: 0.12em !important;
+  text-transform: uppercase !important;
+  color: rgba(255,255,255,0.3) !important;
+  margin: 0 0 0.22rem !important;
+  display: block !important;
+}
+.rr-metric__val {
+  font-family: 'PT Mono', monospace !important;
+  font-size: 1rem !important;
+  font-weight: 700 !important;
+  color: #fff !important;
+  line-height: 1 !important;
+  display: block !important;
+  margin: 0 !important;
+}
+.rr-metric__val.free { color: #4ade80 !important; }
 
-  /* ── BACK ────────────────────────── */
-  .rr-back {
-    display: inline-flex; align-items: center; gap: 0.4rem;
-    font-family: "PT Mono", monospace; font-size: 0.58rem;
-    letter-spacing: 0.1em; text-transform: uppercase;
-    color: rgba(0,0,0,0.38); background: none; border: none;
-    cursor: pointer; padding: 0; margin-bottom: 1.5rem;
-    transition: color 0.2s;
-  }
-  .rr-back:hover { color: #0d0d0d; }
+.rr-sum-items {
+  display: none !important;
+  flex-direction: column !important;
+  gap: 0.5rem !important;
+  margin-bottom: 0.85rem !important;
+  padding-bottom: 0.85rem !important;
+  border-bottom: 1px solid rgba(255,255,255,0.07) !important;
+}
+.rr-sum-items.show { display: flex !important; }
+.rr-smi {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: flex-start !important;
+  gap: 0.45rem !important;
+}
+.rr-smi__name {
+  font-family: 'Noto Sans', sans-serif !important;
+  font-size: 0.76rem !important;
+  font-weight: 600 !important;
+  color: rgba(255,255,255,0.85) !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  flex: 1 !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+}
+.rr-smi__meta {
+  font-family: 'PT Mono', monospace !important;
+  font-size: 0.48rem !important;
+  color: rgba(255,255,255,0.32) !important;
+  letter-spacing: 0.06em !important;
+  margin: 1px 0 0 !important;
+  display: block !important;
+}
+.rr-smi__price {
+  font-family: 'PT Mono', monospace !important;
+  font-size: 0.76rem !important;
+  font-weight: 700 !important;
+  color: #fff !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+  margin: 0 !important;
+}
+.rr-sum-line {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: baseline !important;
+  margin-bottom: 0.32rem !important;
+}
+.rr-sum-lbl {
+  font-family: 'PT Mono', monospace !important;
+  font-size: 0.54rem !important;
+  letter-spacing: 0.1em !important;
+  text-transform: uppercase !important;
+  color: rgba(255,255,255,0.36) !important;
+  margin: 0 !important;
+}
+.rr-sum-val {
+  font-family: 'PT Mono', monospace !important;
+  font-size: 0.76rem !important;
+  font-weight: 700 !important;
+  color: #fff !important;
+  margin: 0 !important;
+}
+.rr-sum-val.free { color: #4ade80 !important; }
+.rr-sum-div {
+  height: 1px !important;
+  background: rgba(255,255,255,0.07) !important;
+  margin: 0.65rem 0 !important;
+  display: block !important;
+}
+.rr-sum-total {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: baseline !important;
+  margin-bottom: 1.15rem !important;
+}
+.rr-sum-total-lbl {
+  font-family: 'Noto Sans', sans-serif !important;
+  font-weight: 800 !important;
+  font-size: 0.92rem !important;
+  color: #fff !important;
+  margin: 0 !important;
+}
+.rr-sum-total-val {
+  font-family: 'PT Mono', monospace !important;
+  font-size: 1.3rem !important;
+  font-weight: 700 !important;
+  color: #fff !important;
+  letter-spacing: 0.02em !important;
+  transition: transform 0.16s !important;
+  display: inline-block !important;
+  margin: 0 !important;
+}
+.rr-sum-total-val.bump { transform: scale(1.1) !important; }
 
-  /* ── FORM ────────────────────────── */
-  .rr-form-section { padding: 1.25rem 0; border-bottom: 1px solid rgba(0,0,0,0.08); }
-  .rr-form-section:last-child { border-bottom: none; }
-  .rr-section-title {
-    font-family: "PT Mono", monospace; font-size: 0.55rem;
-    letter-spacing: 0.18em; text-transform: uppercase;
-    color: rgba(0,0,0,0.32); margin-bottom: 1rem;
-  }
-  .rr-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem; }
-  .rr-form-row--full { grid-template-columns: 1fr; }
-  @media (max-width: 480px) { .rr-form-row { grid-template-columns: 1fr; } }
-  .rr-field { display: flex; flex-direction: column; gap: 0.3rem; }
-  .rr-field label {
-    font-family: "PT Mono", monospace; font-size: 0.54rem;
-    letter-spacing: 0.1em; text-transform: uppercase; color: rgba(0,0,0,0.42);
-  }
-  .rr-field input, .rr-field textarea {
-    font-family: "Noto Sans", sans-serif; font-size: 0.88rem; color: #0d0d0d;
-    background: #fff; border: 1px solid rgba(0,0,0,0.15); padding: 0.6rem 0.8rem;
-    width: 100%; transition: border-color 0.2s;
-  }
-  .rr-field input:focus, .rr-field textarea:focus { border-color: #0d0d0d; }
-  .rr-field input.err { border-color: #e63946; }
-  .rr-field .err-msg { font-family: "PT Mono", monospace; font-size: 0.5rem; color: #e63946; display: none; }
-  .rr-field input.err ~ .err-msg { display: block; }
-  .rr-ship-notice {
-    background: #f5f5f3; border-left: 2px solid #0d0d0d;
-    padding: 0.85rem 1rem; margin-top: 1rem;
-  }
-  .rr-ship-notice p { font-family: "PT Mono", monospace; font-size: 0.58rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 700; margin-bottom: 0.5rem; }
-  .rr-ship-notice li { font-family: "PT Mono", monospace; font-size: 0.56rem; color: rgba(0,0,0,0.52); display: flex; gap: 0.4rem; margin-bottom: 0.2rem; }
+/* ═══════════════════════════════════════════════════════
+   BOTONES
+   ══════════════════════════════════════════════════════ */
+.rr-btn {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.4rem !important;
+  font-family: 'PT Mono', monospace !important;
+  font-size: 0.62rem !important;
+  letter-spacing: 0.12em !important;
+  text-transform: uppercase !important;
+  padding: 0.85rem !important;
+  border: 1px solid !important;
+  cursor: pointer !important;
+  font-weight: 700 !important;
+  width: 100% !important;
+  margin-bottom: 0.45rem !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  outline: none !important;
+  transition: opacity 0.18s, background 0.18s, border-color 0.18s, transform 0.1s !important;
+  text-decoration: none !important;
+  line-height: 1 !important;
+  -webkit-appearance: none !important;
+}
+.rr-btn:active { transform: scale(0.98) !important; }
+.rr-btn:last-child { margin-bottom: 0 !important; }
+.rr-btn--w  { background: #fff !important; color: #0d0d0d !important; border-color: #fff !important; }
+.rr-btn--w:hover { opacity: 0.88 !important; }
+.rr-btn--ol { background: transparent !important; color: rgba(255,255,255,0.5) !important; border-color: rgba(255,255,255,0.16) !important; }
+.rr-btn--ol:hover { border-color: rgba(255,255,255,0.45) !important; color: #fff !important; }
+.rr-btn--wa { background: #25d366 !important; color: #fff !important; border-color: #25d366 !important; }
+.rr-btn--wa:hover { opacity: 0.9 !important; }
+.rr-btn--dk { background: #0d0d0d !important; color: #fff !important; border-color: #0d0d0d !important; }
+.rr-btn--dk:hover { opacity: 0.82 !important; }
+.rr-btn[disabled], .rr-btn:disabled { opacity: 0.3 !important; pointer-events: none !important; cursor: not-allowed !important; }
+.rr-sum-note {
+  font-family: 'PT Mono', monospace !important;
+  font-size: 0.47rem !important;
+  letter-spacing: 0.04em !important;
+  text-align: center !important;
+  color: rgba(255,255,255,0.2) !important;
+  text-transform: uppercase !important;
+  margin-top: 0.38rem !important;
+  line-height: 1.8 !important;
+  display: block !important;
+}
 
-  /* ── CONFIRM DIALOG ──────────────── */
-  .rr-dialog-overlay {
-    display: none; position: fixed; inset: 0;
-    background: rgba(0,0,0,0.5); z-index: 2000;
-    align-items: center; justify-content: center;
-  }
-  .rr-dialog-overlay.open { display: flex; }
-  .rr-dialog {
-    background: #fff; padding: 2rem; max-width: 360px; width: 90%;
-    border-top: 3px solid #e63946;
-  }
-  .rr-dialog__title { font-weight: 800; font-size: 1rem; letter-spacing: -0.02em; margin-bottom: 0.5rem; }
-  .rr-dialog__sub { font-family: "PT Mono", monospace; font-size: 0.62rem; letter-spacing: 0.06em; color: rgba(0,0,0,0.45); margin-bottom: 1.5rem; line-height: 1.6; }
-  .rr-dialog__btns { display: flex; gap: 0.5rem; }
+/* ═══════════════════════════════════════════════════════
+   FORMULARIO PASO 2
+   ══════════════════════════════════════════════════════ */
+.rr-back {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 0.32rem !important;
+  font-family: 'PT Mono', monospace !important;
+  font-size: 0.55rem !important;
+  letter-spacing: 0.1em !important;
+  text-transform: uppercase !important;
+  color: rgba(0,0,0,0.34) !important;
+  background: none !important;
+  border: none !important;
+  cursor: pointer !important;
+  padding: 0 !important;
+  margin-bottom: 1.3rem !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  transition: color 0.2s !important;
+}
+.rr-back:hover { color: #0d0d0d !important; }
+.rr-fsec { padding: 1rem 0 !important; border-bottom: 1px solid rgba(0,0,0,0.07) !important; }
+.rr-fsec:last-child { border-bottom: none !important; }
+.rr-ftitle {
+  font-family: 'PT Mono', monospace !important;
+  font-size: 0.5rem !important;
+  letter-spacing: 0.18em !important;
+  text-transform: uppercase !important;
+  color: rgba(0,0,0,0.28) !important;
+  margin: 0 0 0.85rem !important;
+  display: block !important;
+}
+.rr-frow { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 0.65rem !important; margin-bottom: 0.65rem !important; }
+.rr-frow.full { grid-template-columns: 1fr !important; }
+@media (max-width: 480px) { .rr-frow { grid-template-columns: 1fr !important; } }
+.rr-field { display: flex !important; flex-direction: column !important; gap: 0.25rem !important; }
+.rr-field label {
+  font-family: 'PT Mono', monospace !important;
+  font-size: 0.5rem !important;
+  letter-spacing: 0.1em !important;
+  text-transform: uppercase !important;
+  color: rgba(0,0,0,0.38) !important;
+  display: block !important;
+  margin: 0 !important;
+}
+.rr-field input,
+.rr-field textarea {
+  font-family: 'Noto Sans', sans-serif !important;
+  font-size: 0.88rem !important;
+  color: #0d0d0d !important;
+  background: #fff !important;
+  border: 1px solid rgba(0,0,0,0.13) !important;
+  border-radius: 0 !important;
+  padding: 0.55rem 0.75rem !important;
+  width: 100% !important;
+  transition: border-color 0.2s !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+.rr-field input:focus,
+.rr-field textarea:focus { border-color: #0d0d0d !important; }
+.rr-field input.err { border-color: #c8382a !important; }
+.rr-errmsg { font-family: 'PT Mono', monospace !important; font-size: 0.48rem !important; color: #c8382a !important; display: none !important; margin: 0 !important; }
+.rr-field input.err ~ .rr-errmsg { display: block !important; }
+.rr-ship-info {
+  background: #f5f4ef !important;
+  border-left: 2px solid #0d0d0d !important;
+  padding: 0.75rem 0.9rem !important;
+  margin-top: 0.9rem !important;
+}
+.rr-ship-info p { font-family: 'PT Mono', monospace !important; font-size: 0.54rem !important; letter-spacing: 0.1em !important; text-transform: uppercase !important; font-weight: 700 !important; margin: 0 0 0.4rem !important; }
+.rr-ship-info li { font-family: 'PT Mono', monospace !important; font-size: 0.52rem !important; color: rgba(0,0,0,0.48) !important; display: flex !important; gap: 0.32rem !important; margin-bottom: 0.16rem !important; list-style: none !important; padding: 0 !important; }
 
-  /* ── SUCCESS ─────────────────────── */
-  .rr-success { text-align: center; padding: 4rem 1rem; }
-  .rr-success__check {
-    width: 60px; height: 60px; border-radius: 50%; background: #dcfce7;
-    display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem;
-  }
-  .rr-success__title { font-weight: 800; font-size: 1.4rem; letter-spacing: -0.02em; margin-bottom: 0.5rem; }
-  .rr-success__sub {
-    font-family: "PT Mono", monospace; font-size: 0.6rem; letter-spacing: 0.08em;
-    text-transform: uppercase; color: rgba(0,0,0,0.35); line-height: 2;
-    margin-bottom: 2rem; max-width: 300px; margin-left: auto; margin-right: auto;
-  }
+/* ═══════════════════════════════════════════════════════
+   SUCCESS
+   ══════════════════════════════════════════════════════ */
+.rr-success { text-align: center !important; padding: 3.5rem 1rem !important; }
+.rr-success__check {
+  width: 58px !important; height: 58px !important;
+  border-radius: 50% !important;
+  background: #dcfce7 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin: 0 auto 1.4rem !important;
+  animation: pop 0.4s cubic-bezier(0.22,1,0.36,1) !important;
+}
+@keyframes pop { 0%{transform:scale(0);opacity:0} 100%{transform:scale(1);opacity:1} }
+.rr-success__title { font-family: 'Noto Sans', sans-serif !important; font-weight: 800 !important; font-size: 1.35rem !important; letter-spacing: -0.02em !important; margin: 0 0 0.45rem !important; }
+.rr-success__sub   { font-family: 'PT Mono', monospace !important; font-size: 0.56rem !important; letter-spacing: 0.08em !important; text-transform: uppercase !important; color: rgba(0,0,0,0.3) !important; line-height: 2 !important; margin: 0 auto 1.8rem !important; max-width: 280px !important; display: block !important; }
 
-  /* ── TOAST ───────────────────────── */
-  .rr-toast {
-    position: fixed; bottom: 2rem; left: 50%;
-    transform: translateX(-50%) translateY(60px);
-    background: #0d0d0d; color: #fff;
-    font-family: "PT Mono", monospace; font-size: 0.65rem;
-    letter-spacing: 0.1em; text-transform: uppercase;
-    padding: 0.8rem 1.5rem; z-index: 3000;
-    opacity: 0; transition: transform 0.3s ease, opacity 0.3s ease;
-    pointer-events: none; white-space: nowrap;
-  }
-  .rr-toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+/* ═══════════════════════════════════════════════════════
+   DIALOG + TOAST
+   ══════════════════════════════════════════════════════ */
+.rr-overlay {
+  display: none !important;
+  position: fixed !important;
+  inset: 0 !important;
+  background: rgba(0,0,0,0.52) !important;
+  z-index: 2000 !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+.rr-overlay.open { display: flex !important; }
+.rr-dialog {
+  background: #fff !important;
+  padding: 1.8rem !important;
+  max-width: 320px !important;
+  width: 90% !important;
+  border-top: 3px solid #c8382a !important;
+  animation: slideup 0.22s cubic-bezier(0.22,1,0.36,1) !important;
+  border-radius: 0 !important;
+}
+@keyframes slideup { from{transform:translateY(20px);opacity:0} to{transform:translateY(0);opacity:1} }
+.rr-dialog__title { font-family: 'Noto Sans', sans-serif !important; font-weight: 800 !important; font-size: 0.95rem !important; letter-spacing: -0.02em !important; margin: 0 0 0.38rem !important; }
+.rr-dialog__sub   { font-family: 'PT Mono', monospace !important; font-size: 0.58rem !important; letter-spacing: 0.06em !important; color: rgba(0,0,0,0.4) !important; margin: 0 0 1.3rem !important; line-height: 1.7 !important; }
+.rr-dialog__btns  { display: flex !important; gap: 0.45rem !important; }
+.rr-dialog .rr-btn { background: #0d0d0d !important; color: #fff !important; border-color: #0d0d0d !important; }
+.rr-dialog .rr-btn--ol { background: #fff !important; color: #0d0d0d !important; border-color: rgba(0,0,0,0.16) !important; }
+.rr-toast {
+  position: fixed !important;
+  bottom: 2rem !important;
+  left: 50% !important;
+  transform: translateX(-50%) translateY(60px) !important;
+  background: #0d0d0d !important;
+  color: #fff !important;
+  font-family: 'PT Mono', monospace !important;
+  font-size: 0.6rem !important;
+  letter-spacing: 0.1em !important;
+  text-transform: uppercase !important;
+  padding: 0.7rem 1.4rem !important;
+  z-index: 3000 !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  white-space: nowrap !important;
+  border-radius: 0 !important;
+  transition: transform 0.28s ease, opacity 0.28s ease !important;
+}
+.rr-toast.show {
+  transform: translateX(-50%) translateY(0) !important;
+  opacity: 1 !important;
+}
+
+/* REVEAL */
+.rr-reveal { opacity: 0; transform: translateY(12px); transition: opacity 0.5s ease, transform 0.5s ease; }
+.rr-reveal.v { opacity: 1 !important; transform: translateY(0) !important; }
+.d1 { transition-delay: 0.04s; }
+.d2 { transition-delay: 0.11s; }
+.d3 { transition-delay: 0.18s; }
+
+/* ── IMAGEN DE PRODUCTO EN TICKET: contener la imagen al tamaño del contenedor ── */
+.rr-ticket__img img {
+  width: 70px !important;
+  height: 90px !important;
+  max-width: 70px !important;
+  min-width: 0 !important;
+  object-fit: cover !important;
+  display: block !important;
+  flex-shrink: 0 !important;
+}
+@media (max-width: 400px) {
+  .rr-ticket__img img { width: 56px !important; height: 72px !important; max-width: 56px !important; }
+}
 </style>
 
 <div class="rr-cart">
 
   <Navbar client:load />
 
-  <!-- HERO BANNER — fondo negro para que el navbar sea visible -->
-  <div class="rr-cart-hero">
+  <!-- HERO -->
+  <div class="rr-hero">
     <div class="container">
-      <h1 class="rr-cart-hero__title">Mi Carrito</h1>
-      <p class="rr-cart-hero__sub" id="cart-count-label">0 artículos</p>
+      <h1 class="rr-hero__title">Mi Carrito</h1>
+      <p class="rr-hero__sub" id="cart-count-label">0 artículos</p>
+    </div>
+  </div>
+
+  <!-- BARRA ENVÍO GRATIS -->
+  <div class="rr-sb-wrap">
+    <div class="container">
+      <div class="rr-sb-row">
+        <span class="rr-sb-lbl" id="sb-lbl">Agrega <strong id="sb-miss">$1,299</strong> MXN más para envío gratis</span>
+        <span class="rr-sb-pct" id="sb-pct">0%</span>
+      </div>
+      <div class="rr-sb-track">
+        <div class="rr-sb-bar" id="sb-bar"></div>
+      </div>
     </div>
   </div>
 
   <!-- STEPS -->
-  <div style="background:#fff; border-bottom:1px solid rgba(0,0,0,0.08);">
+  <div class="rr-steps-wrap">
     <div class="container">
       <div class="rr-steps">
-        <div class="rr-step active" id="si1">
-          <span class="rr-step__num" id="sn1">1</span>Carrito
-        </div>
+        <div class="rr-step active" id="si1"><span class="rr-step__num" id="sn1">1</span>Carrito</div>
         <div class="rr-step__sep"></div>
-        <div class="rr-step" id="si2">
-          <span class="rr-step__num" id="sn2">2</span>Datos de envío
-        </div>
+        <div class="rr-step" id="si2"><span class="rr-step__num" id="sn2">2</span>Datos de envío</div>
         <div class="rr-step__sep"></div>
-        <div class="rr-step" id="si3">
-          <span class="rr-step__num" id="sn3">3</span>Confirmar
-        </div>
+        <div class="rr-step" id="si3"><span class="rr-step__num" id="sn3">3</span>Confirmar</div>
       </div>
     </div>
   </div>
@@ -406,98 +920,97 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     <div class="container">
       <div class="rr-layout">
 
-        <!-- LEFT -->
-        <div>
+        <!-- COLUMNA IZQUIERDA (order:1 en móvil) -->
+        <div class="rr-col-left">
 
-          <!-- PASO 1: ITEMS -->
+          <!-- PASO 1 -->
           <div id="step-cart">
             <div class="rr-panel">
-              <p class="rr-panel__title">Productos en tu carrito</p>
-              <!-- Table header -->
-              <div class="rr-table-head">
-                <span></span>
-                <span>Producto</span>
-                <span style="text-align:center;">Cantidad</span>
-                <span class="rr-th-price" style="text-align:right;">Precio</span>
-              </div>
+              <span class="rr-panel__title">Productos en tu carrito</span>
               <div id="items-container"></div>
+            </div>
+            <div id="suggested-wrap" style="display:none;">
+              <div class="rr-panel rr-reveal d2">
+                <div class="rr-sug-head">
+                  <span class="rr-sug-title">También te puede gustar</span>
+                  <div class="rr-sug-line"></div>
+                </div>
+                <div class="rr-sug-grid" id="sug-grid"></div>
+              </div>
             </div>
           </div>
 
-          <!-- PASO 2: FORM -->
+          <!-- PASO 2 -->
           <div id="step-form" style="display:none;">
             <div class="rr-panel">
               <button class="rr-back" id="btn-back" type="button">← Volver al carrito</button>
-
-              <div class="rr-form-section">
-                <p class="rr-section-title">Datos personales</p>
-                <div class="rr-form-row">
+              <div class="rr-fsec">
+                <span class="rr-ftitle">Datos personales</span>
+                <div class="rr-frow">
                   <div class="rr-field">
-                    <label for="f-name">Nombre completo <span style="color:#e63946;">*</span></label>
+                    <label for="f-name">Nombre completo <span style="color:#c8382a;">*</span></label>
                     <input id="f-name" type="text" placeholder="Tu nombre completo" autocomplete="name"/>
-                    <span class="err-msg" data-for="f-name">Requerido</span>
+                    <span class="rr-errmsg" data-for="f-name">Requerido</span>
                   </div>
                   <div class="rr-field">
-                    <label for="f-phone">Teléfono <span style="color:#e63946;">*</span></label>
+                    <label for="f-phone">Teléfono <span style="color:#c8382a;">*</span></label>
                     <input id="f-phone" type="tel" placeholder="55 1234 5678" autocomplete="tel"/>
-                    <span class="err-msg" data-for="f-phone">Requerido</span>
+                    <span class="rr-errmsg" data-for="f-phone">Requerido</span>
                   </div>
                 </div>
-                <div class="rr-form-row rr-form-row--full">
+                <div class="rr-frow full">
                   <div class="rr-field">
-                    <label for="f-email">Correo <span style="font-size:0.48rem;color:rgba(0,0,0,0.3);">(opcional)</span></label>
+                    <label for="f-email">Correo <span style="font-size:0.46rem;color:rgba(0,0,0,0.28);">(opcional)</span></label>
                     <input id="f-email" type="email" placeholder="tu@correo.com" autocomplete="email"/>
                   </div>
                 </div>
               </div>
-
-              <div class="rr-form-section">
-                <p class="rr-section-title">Dirección de entrega</p>
-                <div class="rr-form-row rr-form-row--full">
+              <div class="rr-fsec">
+                <span class="rr-ftitle">Dirección de entrega</span>
+                <div class="rr-frow full">
                   <div class="rr-field">
-                    <label for="f-address">Calle y número <span style="color:#e63946;">*</span></label>
+                    <label for="f-address">Calle y número <span style="color:#c8382a;">*</span></label>
                     <input id="f-address" type="text" placeholder="Calle Ejemplo #42, Col. Centro" autocomplete="street-address"/>
-                    <span class="err-msg" data-for="f-address">Requerido</span>
+                    <span class="rr-errmsg" data-for="f-address">Requerido</span>
                   </div>
                 </div>
-                <div class="rr-form-row">
+                <div class="rr-frow">
                   <div class="rr-field">
-                    <label for="f-city">Ciudad / Municipio <span style="color:#e63946;">*</span></label>
+                    <label for="f-city">Ciudad / Municipio <span style="color:#c8382a;">*</span></label>
                     <input id="f-city" type="text" placeholder="Ciudad de México" autocomplete="address-level2"/>
-                    <span class="err-msg" data-for="f-city">Requerido</span>
+                    <span class="rr-errmsg" data-for="f-city">Requerido</span>
                   </div>
                   <div class="rr-field">
-                    <label for="f-state">Estado <span style="color:#e63946;">*</span></label>
+                    <label for="f-state">Estado <span style="color:#c8382a;">*</span></label>
                     <input id="f-state" type="text" placeholder="CDMX" autocomplete="address-level1"/>
-                    <span class="err-msg" data-for="f-state">Requerido</span>
+                    <span class="rr-errmsg" data-for="f-state">Requerido</span>
                   </div>
                 </div>
-                <div class="rr-form-row">
+                <div class="rr-frow">
                   <div class="rr-field">
-                    <label for="f-cp">Código Postal <span style="color:#e63946;">*</span></label>
+                    <label for="f-cp">Código Postal <span style="color:#c8382a;">*</span></label>
                     <input id="f-cp" type="text" placeholder="06600" maxlength="5" autocomplete="postal-code"/>
-                    <span class="err-msg" data-for="f-cp">Requerido</span>
+                    <span class="rr-errmsg" data-for="f-cp">Requerido</span>
                   </div>
                   <div class="rr-field">
                     <label for="f-refs">Referencias</label>
                     <input id="f-refs" type="text" placeholder="Entre calles, color de fachada..."/>
                   </div>
                 </div>
-                <div class="rr-ship-notice">
+                <div class="rr-ship-info">
                   <p>Información de envío</p>
-                  <ul>
+                  <ul style="margin:0;padding:0;">
                     <li><span>—</span>Enviamos a toda la República Mexicana</li>
                     <li><span>—</span>No realizamos envíos internacionales</li>
                     <li><span>—</span>Tiempo estimado: 3 a 7 días hábiles</li>
                     <li><span>—</span>Costo de envío: $150 MXN</li>
-                    <li><span>—</span>Envío GRATIS en pedidos mayores a $800 MXN</li>
+                    <li><span>—</span>Envío GRATIS en pedidos mayores a $1,299 MXN</li>
                     <li><span>—</span>Confirmamos tu pedido antes de cualquier cobro</li>
                   </ul>
                 </div>
               </div>
-
-              <div class="rr-form-section">
-                <p class="rr-section-title">Notas adicionales</p>
+              <div class="rr-fsec">
+                <span class="rr-ftitle">Notas adicionales</span>
                 <div class="rr-field">
                   <label for="f-notes">Instrucción especial</label>
                   <textarea id="f-notes" rows="3" placeholder="Ej: Es un regalo, no incluir precio. Horario preferido..."></textarea>
@@ -506,89 +1019,80 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
             </div>
           </div>
 
-          <!-- PASO 3: SUCCESS -->
+          <!-- PASO 3 -->
           <div id="step-success" style="display:none;">
             <div class="rr-panel">
               <div class="rr-success">
                 <div class="rr-success__check">
-                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                     <polyline points="20 6 9 17 4 12"/>
                   </svg>
                 </div>
                 <h2 class="rr-success__title">¡Pedido enviado!</h2>
-                <p class="rr-success__sub">
-                  Tu orden fue enviada por WhatsApp.<br/>
-                  Te confirmamos disponibilidad y envío en breve.<br/>
-                  ¡Gracias por tu compra en Retro Reeves!
-                </p>
-                <a href={`${base}/`} class="rr-btn rr-btn--dark" style="max-width:240px;margin:0 auto;">
-                  Seguir comprando
-                </a>
+                <p class="rr-success__sub">Tu orden fue enviada por WhatsApp.<br/>Te confirmamos disponibilidad y envío en breve.<br/>¡Gracias por tu compra en Retro Reeves!</p>
+                <a href={`${base}/`} class="rr-btn rr-btn--dk" style="max-width:220px;margin:0 auto;">Seguir comprando</a>
               </div>
             </div>
           </div>
 
-        </div><!-- /LEFT -->
+        </div><!-- /col-left -->
 
-        <!-- SIDEBAR -->
-        <div class="rr-sidebar">
+        <!-- SIDEBAR (order:2 en móvil — va debajo) -->
+        <div class="rr-sidebar rr-reveal d3">
           <div class="rr-summary">
-            <p class="rr-summary__title">Resumen del pedido</p>
-
-            <div class="rr-summary__mini" id="summary-items"></div>
-
-            <div class="rr-summary__line">
-              <span class="rr-summary__line-lbl">Subtotal</span>
-              <span class="rr-summary__line-val" id="s-sub">$0 MXN</span>
+            <span class="rr-summary__title">Resumen del pedido</span>
+            <div class="rr-metrics">
+              <div class="rr-metric">
+                <span class="rr-metric__lbl">Artículos</span>
+                <span class="rr-metric__val" id="m-count">0</span>
+              </div>
+              <div class="rr-metric">
+                <span class="rr-metric__lbl">Envío</span>
+                <span class="rr-metric__val" id="m-ship">$150</span>
+              </div>
             </div>
-            <div class="rr-summary__line">
-              <span class="rr-summary__line-lbl">Envío</span>
-              <span class="rr-summary__line-val" id="s-ship">$150 MXN</span>
+            <div class="rr-sum-items" id="sum-items"></div>
+            <div class="rr-sum-line">
+              <span class="rr-sum-lbl">Subtotal</span>
+              <span class="rr-sum-val" id="s-sub">$0 MXN</span>
             </div>
-            <div class="rr-summary__divider"></div>
-            <div class="rr-summary__total">
-              <span class="rr-summary__total-lbl">Total</span>
-              <span class="rr-summary__total-val" id="s-total">$150 MXN</span>
+            <div class="rr-sum-line">
+              <span class="rr-sum-lbl">Envío</span>
+              <span class="rr-sum-val" id="s-ship">$150 MXN</span>
             </div>
-
+            <div class="rr-sum-div"></div>
+            <div class="rr-sum-total">
+              <span class="rr-sum-total-lbl">Total</span>
+              <span class="rr-sum-total-val" id="s-total">$150 MXN</span>
+            </div>
             <div id="cta-1">
-              <button id="btn-to-form" type="button" class="rr-btn rr-btn--dark">
-                Continuar con el pedido
-              </button>
-              <a href={`${base}/`} class="rr-btn rr-btn--outline">
-                Seguir comprando
-              </a>
+              <button id="btn-to-form" type="button" class="rr-btn rr-btn--w">Continuar con el pedido</button>
+              <a href={`${base}/`} class="rr-btn rr-btn--ol">Seguir comprando</a>
             </div>
-
             <div id="cta-2" style="display:none;">
               <button id="btn-send-wa" type="button" class="rr-btn rr-btn--wa">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0;display:block;">
                   <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
                 </svg>
                 Enviar pedido por WhatsApp
               </button>
-              <p class="rr-summary__note">Confirmamos disponibilidad y<br/>método de pago antes de cobrar</p>
+              <span class="rr-sum-note">Confirmamos disponibilidad y<br/>método de pago antes de cobrar</span>
             </div>
-
           </div>
-        </div><!-- /SIDEBAR -->
+        </div><!-- /sidebar -->
 
       </div>
     </div>
-  </div><!-- /MAIN -->
+  </div>
 
-  <!-- CONFIRM DIALOG -->
-  <div class="rr-dialog-overlay" id="confirm-dialog">
+  <!-- DIALOG -->
+  <div class="rr-overlay" id="rr-overlay">
     <div class="rr-dialog">
-      <h3 class="rr-dialog__title">¿Eliminar producto?</h3>
-      <p class="rr-dialog__sub" id="confirm-dialog-name">¿Estás seguro de que quieres eliminar este artículo del carrito?</p>
+      <p class="rr-dialog__title">¿Eliminar producto?</p>
+      <p class="rr-dialog__sub" id="dlg-name">¿Estás seguro de que quieres eliminar este artículo?</p>
       <div class="rr-dialog__btns">
-        <button id="confirm-yes" type="button" class="rr-btn rr-btn--dark" style="margin-bottom:0;">
-          Sí, eliminar
-        </button>
-        <button id="confirm-no" type="button" class="rr-btn rr-btn--outline" style="margin-bottom:0;">
-          Cancelar
-        </button>
+        <button id="dlg-yes" type="button" class="rr-btn" style="margin-bottom:0;">Sí, eliminar</button>
+        <button id="dlg-no"  type="button" class="rr-btn rr-btn--ol" style="margin-bottom:0;">Cancelar</button>
       </div>
     </div>
   </div>
@@ -600,173 +1104,239 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 </div>
 
 <script define:vars={{ base }}>
-  const SHIP = 150
+  const SHIP    = 150
+  const FREE_AT = 1299
   let cart = JSON.parse(localStorage.getItem('cart') || '[]')
-  let pendingDeleteIdx = null
+  let pendingDel = null
 
-  const fmt = n => '$' + Number(n).toLocaleString('es-MX') + ' MXN'
-  const sub = () => cart.reduce((s,i) => s + i.price*(i.qty||1), 0)
-  const tot = s => s >= 800 ? s : s + SHIP
+  const fmx = n => '$' + Number(n).toLocaleString('es-MX') + ' MXN'
+  const sub = () => cart.reduce((s, i) => s + i.price * (i.qty || 1), 0)
+  const tot = s  => s >= FREE_AT ? s : s + SHIP
 
-  // ── TOAST ────────────────────────────────────────
   function toast(msg) {
     const el = document.getElementById('rr-toast')
     el.textContent = msg
     el.classList.add('show')
-    setTimeout(() => el.classList.remove('show'), 2500)
+    setTimeout(() => el.classList.remove('show'), 2400)
   }
 
-  // ── CONFIRM DIALOG ────────────────────────────────
-  function openConfirm(idx) {
-    pendingDeleteIdx = idx
-    const name = cart[idx]?.name ?? 'este artículo'
-    document.getElementById('confirm-dialog-name').textContent =
-      `¿Eliminar "${name}" del carrito?`
-    document.getElementById('confirm-dialog').classList.add('open')
+  function updateBar() {
+    const s       = sub()
+    const missing = Math.max(0, FREE_AT - s)
+    const pct     = Math.min(100, Math.round((s / FREE_AT) * 100))
+    const bar   = document.getElementById('sb-bar')
+    const lbl   = document.getElementById('sb-lbl')
+    const pctEl = document.getElementById('sb-pct')
+    if (bar)   { bar.style.width = pct + '%'; bar.classList.toggle('free', missing === 0) }
+    if (pctEl) pctEl.textContent = pct + '%'
+    if (lbl) {
+      if (missing === 0) {
+        lbl.classList.add('free')
+        lbl.innerHTML = '¡<strong>Envío gratis</strong> aplicado en tu pedido!'
+      } else {
+        lbl.classList.remove('free')
+        lbl.innerHTML = 'Agrega <strong>$' + missing.toLocaleString('es-MX') + '</strong> MXN más para envío gratis'
+      }
+    }
   }
-  document.getElementById('confirm-yes')?.addEventListener('click', () => {
-    if (pendingDeleteIdx !== null) {
-      const name = cart[pendingDeleteIdx]?.name
-      cart.splice(pendingDeleteIdx, 1)
-      pendingDeleteIdx = null
-      save(); renderCart(); updateSummary()
-      toast(name ? `"${name}" eliminado` : 'Artículo eliminado')
-    }
-    document.getElementById('confirm-dialog').classList.remove('open')
-  })
-  document.getElementById('confirm-no')?.addEventListener('click', () => {
-    pendingDeleteIdx = null
-    document.getElementById('confirm-dialog').classList.remove('open')
-  })
-  document.getElementById('confirm-dialog')?.addEventListener('click', e => {
-    if (e.target === e.currentTarget) {
-      pendingDeleteIdx = null
-      e.currentTarget.classList.remove('open')
-    }
-  })
 
-  // ── SUMMARY ──────────────────────────────────────
   function updateSummary() {
-    const s = sub(), t = tot(s), free = s >= 800
-    document.getElementById('s-sub').textContent   = fmt(s)
-    document.getElementById('s-ship').innerHTML    = free
-      ? '<span style="color:#16a34a;font-family:\'PT Mono\',monospace;font-weight:700;">GRATIS</span>'
-      : fmt(SHIP)
-    document.getElementById('s-total').textContent = fmt(t)
+    const s    = sub(), t = tot(s), free = s >= FREE_AT
+    const n    = cart.reduce((a, i) => a + (i.qty || 1), 0)
+    document.getElementById('s-sub').textContent   = fmx(s)
+    document.getElementById('s-total').textContent = fmx(t)
+    const sEl = document.getElementById('s-ship')
+    const mSh = document.getElementById('m-ship')
+    const mCt = document.getElementById('m-count')
+    const tEl = document.getElementById('s-total')
+    if (free) {
+      if (sEl) { sEl.textContent = 'GRATIS'; sEl.classList.add('free') }
+      if (mSh) { mSh.textContent = 'GRATIS'; mSh.classList.add('free') }
+    } else {
+      if (sEl) { sEl.textContent = fmx(SHIP); sEl.classList.remove('free') }
+      if (mSh) { mSh.textContent = '$' + SHIP; mSh.classList.remove('free') }
+    }
+    if (mCt) mCt.textContent = n
+    if (tEl) { tEl.classList.remove('bump'); void tEl.offsetWidth; tEl.classList.add('bump'); setTimeout(() => tEl.classList.remove('bump'), 180) }
   }
 
-  function renderSummaryItems() {
-    const el = document.getElementById('summary-items')
-    el.style.display = cart.length ? 'flex' : 'none'
+  function renderMiniItems() {
+    const el = document.getElementById('sum-items')
+    if (!cart.length) { el.classList.remove('show'); return }
+    el.classList.add('show')
     el.innerHTML = cart.map(item => `
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:0.5rem;">
+      <div class="rr-smi">
         <div style="flex:1;min-width:0;">
-          <div style="font-weight:600;font-size:0.8rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${item.name}</div>
-          <div style="font-family:'PT Mono',monospace;font-size:0.54rem;color:rgba(0,0,0,0.38);margin-top:2px;">
-            ${[item.size&&'T: '+item.size, item.color&&'C: '+item.color, 'x'+(item.qty||1)].filter(Boolean).join(' · ')}
-          </div>
+          <p class="rr-smi__name">${item.name}</p>
+          <span class="rr-smi__meta">${[item.size && 'T:' + item.size, item.color && 'C:' + item.color, 'x' + (item.qty || 1)].filter(Boolean).join(' · ')}</span>
         </div>
-        <div style="font-family:'PT Mono',monospace;font-size:0.8rem;font-weight:700;white-space:nowrap;flex-shrink:0;">${fmt(item.price*(item.qty||1))}</div>
+        <span class="rr-smi__price">${fmx(item.price * (item.qty || 1))}</span>
       </div>`).join('')
   }
 
-  // ── RENDER ITEMS ──────────────────────────────────
   function renderCart() {
     const c   = document.getElementById('items-container')
     const lbl = document.getElementById('cart-count-label')
     const btn = document.getElementById('btn-to-form')
-    const n   = cart.reduce((s,i) => s+(i.qty||1), 0)
-
-    if (lbl) lbl.textContent = n + ' artículo' + (n!==1?'s':'')
-    if (btn) {
-      btn.disabled = cart.length === 0
-    }
+    const n   = cart.reduce((s, i) => s + (i.qty || 1), 0)
+    if (lbl) lbl.textContent = n + ' artículo' + (n !== 1 ? 's' : '')
+    if (btn) btn.disabled = !cart.length
 
     if (!cart.length) {
       c.innerHTML = `
         <div class="rr-empty">
-          <div class="rr-empty__icon">◻</div>
-          <h2 class="rr-empty__title">Tu carrito está vacío</h2>
-          <p class="rr-empty__sub">Agrega productos desde el catálogo</p>
-          <a href="${base}/" class="rr-btn rr-btn--dark" style="max-width:200px;margin:0 auto;">Explorar productos</a>
+          <span class="rr-empty__icon">◻</span>
+          <p class="rr-empty__title">Tu carrito está vacío</p>
+          <span class="rr-empty__sub">Agrega productos desde la tienda</span>
+          <a href="${base}/" class="rr-btn rr-btn--dk" style="max-width:210px;margin:0 auto;">Ver productos</a>
         </div>`
-      updateSummary(); return
+      const sw = document.getElementById('suggested-wrap')
+      if (sw) sw.style.display = 'none'
+      updateSummary(); updateBar()
+      return
     }
 
-    c.innerHTML = cart.map((item, idx) => `
-      <div class="rr-item">
-        <div class="rr-item__img">
-          <img src="${base}/${item.image||'images/product1.jpg'}" alt="${item.name}" loading="lazy"
-            style="width:64px !important;height:80px !important;max-width:64px !important;object-fit:cover !important;display:block !important;"/>
-        </div>
-        <div style="min-width:0;overflow:hidden;">
-          <div class="rr-item__name">${item.name}</div>
-          <div class="rr-item__meta">${[item.size&&'Talla: '+item.size, item.color&&'Color: '+item.color].filter(Boolean).join(' · ')}</div>
-          <button class="rr-item__remove" data-a="del" data-i="${idx}" type="button">Eliminar</button>
-        </div>
-        <div style="display:flex;align-items:center;justify-content:center;">
-          <div class="rr-qty">
-            <button class="rr-qty__btn" data-a="dec" data-i="${idx}" type="button">&#8722;</button>
-            <span class="rr-qty__num">${item.qty||1}</span>
-            <button class="rr-qty__btn" data-a="inc" data-i="${idx}" type="button">&#43;</button>
+    c.innerHTML = cart.map((item, idx) => {
+      const isDrop = !!(item.drop || item.dropSlug)
+      const qty    = item.qty || 1
+      const total  = item.price * qty
+      const imgSrc = item.image ? base + '/' + item.image : ''
+      const meta   = [item.size ? 'Talla: ' + item.size : null, item.color ? 'Color: ' + item.color : null].filter(Boolean).join(' · ')
+      return `
+      <div class="rr-ticket${isDrop ? ' drop' : ''}" id="tk-${idx}">
+        <div class="rr-ticket__body">
+          <div class="rr-ticket__img">
+            ${imgSrc
+              ? `<img src="${imgSrc}" alt="${item.name}" loading="lazy"/>`
+              : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-family:'PT Mono',monospace;font-size:0.4rem;letter-spacing:.08em;text-transform:uppercase;color:rgba(0,0,0,0.25);text-align:center;padding:.5rem;line-height:1.4;">${item.name}</div>`
+            }
+          </div>
+          <div class="rr-ticket__info">
+            <span class="rr-ticket__name">${item.name}${isDrop ? '<span class="rr-ticket__badge">Drop</span>' : ''}</span>
+            <span class="rr-ticket__meta">${meta}</span>
           </div>
         </div>
-        <div class="rr-item-price">${fmt(item.price*(item.qty||1))}</div>
-      </div>`).join('')
+        <hr class="rr-ticket__sep"/>
+        <div class="rr-ticket__foot">
+          <div class="rr-qty">
+            <button class="rr-qty__btn" data-a="dec" data-i="${idx}" type="button">&#8722;</button>
+            <span class="rr-qty__num" id="qn-${idx}">${qty}</span>
+            <button class="rr-qty__btn" data-a="inc" data-i="${idx}" type="button">&#43;</button>
+          </div>
+          <span class="rr-ticket__price" id="tp-${idx}">$${total.toLocaleString('es-MX')} MXN${qty > 1 ? `<span class="rr-ticket__price-unit">($${item.price.toLocaleString('es-MX')} c/u)</span>` : ''}</span>
+        </div>
+        <button class="rr-ticket__remove" data-a="del" data-i="${idx}" type="button">✕ quitar</button>
+      </div>`
+    }).join('')
 
-    c.querySelectorAll('[data-a]').forEach(btn => btn.addEventListener('click', () => {
-      const i = parseInt(btn.dataset.i), a = btn.dataset.a
-      if (a === 'inc') {
-        cart[i].qty = (cart[i].qty||1) + 1
-        save(); renderCart(); updateSummary()
-      }
-      if (a === 'dec') {
-        if ((cart[i].qty||1) <= 1) {
-          // Pide confirmación antes de eliminar
-          openConfirm(i)
-        } else {
-          cart[i].qty = (cart[i].qty||1) - 1
-          save(); renderCart(); updateSummary()
+    c.querySelectorAll('[data-a]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const i = parseInt(btn.dataset.i), a = btn.dataset.a
+        if (a === 'inc') {
+          if ((cart[i].qty || 1) < 10) {
+            cart[i].qty = (cart[i].qty || 1) + 1
+            bumpNum(i); updateTicketPrice(i); save(); updateSummary(); updateBar()
+          }
         }
-      }
-      if (a === 'del') {
-        openConfirm(i)
-      }
-    }))
-
-    updateSummary()
-  }
-
-  // ── STEPS ─────────────────────────────────────────
-  function goTo(n) {
-    document.getElementById('step-cart').style.display    = n===1?'block':'none'
-    document.getElementById('step-form').style.display    = n===2?'block':'none'
-    document.getElementById('step-success').style.display = n===3?'block':'none'
-    document.getElementById('cta-1').style.display        = n===1?'block':'none'
-    document.getElementById('cta-2').style.display        = n===2?'block':'none'
-    document.getElementById('summary-items').style.display= n===2?'flex':'none'
-
-    ;[1,2,3].forEach(i => {
-      const si = document.getElementById('si'+i)
-      const sn = document.getElementById('sn'+i)
-      si.classList.remove('active','done')
-      if      (i < n)  { si.classList.add('done');   sn.textContent = '✓' }
-      else if (i === n){ si.classList.add('active'); sn.textContent = String(i) }
-      else             { sn.textContent = String(i) }
+        if (a === 'dec') {
+          if ((cart[i].qty || 1) <= 1) { openDlg(i) }
+          else { cart[i].qty = (cart[i].qty || 1) - 1; bumpNum(i); updateTicketPrice(i); save(); updateSummary(); updateBar() }
+        }
+        if (a === 'del') openDlg(i)
+      })
     })
-    window.scrollTo({top:0, behavior:'smooth'})
+    updateSummary(); updateBar(); renderSuggested()
   }
 
-  // ── VALIDACIÓN ─────────────────────────────────────
+  function bumpNum(idx) {
+    const el = document.getElementById('qn-' + idx)
+    if (!el) return
+    el.textContent = cart[idx].qty || 1
+    el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump')
+    setTimeout(() => el.classList.remove('bump'), 180)
+  }
+
+  function updateTicketPrice(idx) {
+    const el = document.getElementById('tp-' + idx)
+    if (!el) return
+    const item = cart[idx], qty = item.qty || 1, total = item.price * qty
+    el.innerHTML = '$' + total.toLocaleString('es-MX') + ' MXN' + (qty > 1 ? '<span class="rr-ticket__price-unit">($' + item.price.toLocaleString('es-MX') + ' c/u)</span>' : '')
+  }
+
+  function renderSuggested() {
+    const wrap = document.getElementById('suggested-wrap')
+    const grid = document.getElementById('sug-grid')
+    if (!wrap || !grid) return
+    let all = []
+    try { all = JSON.parse(localStorage.getItem('rr-products') || '[]') } catch(e) {}
+    const inCart = new Set(cart.map(i => i.slug))
+    const cands  = all.filter(p => !inCart.has(p.slug)).slice(0, 3)
+    if (!cands.length) { wrap.style.display = 'none'; return }
+    wrap.style.display = 'block'
+    grid.innerHTML = cands.map(p => {
+      const img = p.images?.[0] ? base + '/' + p.images[0] : ''
+      return `
+      <a href="${base}/product/${p.slug}" class="rr-sug-card">
+        <div class="rr-sug-card__img">${img ? `<img src="${img}" alt="${p.name}" loading="lazy"/>` : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-family:'PT Mono',monospace;font-size:0.42rem;text-transform:uppercase;color:rgba(0,0,0,0.26);text-align:center;padding:.5rem;">${p.name}</div>`}</div>
+        <div class="rr-sug-card__info">
+          <span class="rr-sug-card__name">${p.name}</span>
+          <span class="rr-sug-card__price">$${p.price.toLocaleString('es-MX')} MXN</span>
+        </div>
+      </a>`
+    }).join('')
+    requestAnimationFrame(() => { wrap.querySelectorAll('.rr-reveal').forEach(el => el.classList.add('v')) })
+  }
+
+  function openDlg(idx) {
+    pendingDel = idx
+    document.getElementById('dlg-name').textContent = '¿Eliminar "' + (cart[idx]?.name ?? 'este artículo') + '" del carrito?'
+    document.getElementById('rr-overlay').classList.add('open')
+  }
+  document.getElementById('dlg-yes')?.addEventListener('click', () => {
+    if (pendingDel !== null) {
+      const name = cart[pendingDel]?.name
+      const tkEl = document.getElementById('tk-' + pendingDel)
+      if (tkEl) { tkEl.classList.add('removing'); setTimeout(() => doDelete(pendingDel, name), 260) }
+      else doDelete(pendingDel, name)
+    }
+    document.getElementById('rr-overlay').classList.remove('open')
+  })
+  function doDelete(idx, name) {
+    cart.splice(idx, 1); pendingDel = null
+    save(); renderCart()
+    toast(name ? '"' + name + '" eliminado' : 'Artículo eliminado')
+  }
+  document.getElementById('dlg-no')?.addEventListener('click', () => {
+    pendingDel = null; document.getElementById('rr-overlay').classList.remove('open')
+  })
+  document.getElementById('rr-overlay')?.addEventListener('click', e => {
+    if (e.target === e.currentTarget) { pendingDel = null; e.currentTarget.classList.remove('open') }
+  })
+
+  function goTo(n) {
+    document.getElementById('step-cart').style.display    = n === 1 ? 'block' : 'none'
+    document.getElementById('step-form').style.display    = n === 2 ? 'block' : 'none'
+    document.getElementById('step-success').style.display = n === 3 ? 'block' : 'none'
+    document.getElementById('cta-1').style.display        = n === 1 ? 'block' : 'none'
+    document.getElementById('cta-2').style.display        = n === 2 ? 'block' : 'none'
+    ;[1,2,3].forEach(i => {
+      const si = document.getElementById('si' + i), sn = document.getElementById('sn' + i)
+      si.classList.remove('active','done')
+      if (i < n) { si.classList.add('done'); sn.textContent = '✓' }
+      else if (i === n) { si.classList.add('active'); sn.textContent = String(i) }
+      else sn.textContent = String(i)
+    })
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
   const REQ = ['f-name','f-phone','f-address','f-city','f-state','f-cp']
   function validate() {
     let ok = true
     REQ.forEach(id => {
-      const el  = document.getElementById(id)
-      const err = document.querySelector(`.err-msg[data-for="${id}"]`)
+      const el = document.getElementById(id), err = document.querySelector('.rr-errmsg[data-for="' + id + '"]')
       const empty = !el?.value.trim()
-      if (el)  el.classList.toggle('err', empty)
-      if (err) err.style.display = empty ? 'block' : 'none'
+      if (el) el.classList.toggle('err', empty)
+      if (err) err.style.setProperty('display', empty ? 'block' : 'none', 'important')
       if (empty) ok = false
     })
     return ok
@@ -774,60 +1344,41 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
   REQ.forEach(id => {
     document.getElementById(id)?.addEventListener('input', function() {
       this.classList.toggle('err', !this.value.trim())
-      const err = document.querySelector(`.err-msg[data-for="${id}"]`)
-      if (err) err.style.display = this.value.trim() ? 'none' : 'block'
+      const err = document.querySelector('.rr-errmsg[data-for="' + id + '"]')
+      if (err) err.style.setProperty('display', this.value.trim() ? 'none' : 'block', 'important')
     })
   })
 
-  // ── WHATSAPP ───────────────────────────────────────
   function buildWA() {
-    const g = id => document.getElementById(id)?.value?.trim()??''
-    const s = sub(), free = s>=800, t = tot(s)
-    const lines = [
-      'NUEVO PEDIDO - RETRO REEVES','',
-      'DATOS DEL CLIENTE',
-      'Nombre: '+g('f-name'),
-      'Telefono: '+g('f-phone'),
+    const g = id => document.getElementById(id)?.value?.trim() ?? ''
+    const s = sub(), free = s >= FREE_AT, t = tot(s)
+    return 'https://wa.me/5217773019146?text=' + encodeURIComponent([
+      'NUEVO PEDIDO — RETRO REEVES','',
+      'DATOS DEL CLIENTE', 'Nombre: '+g('f-name'), 'Telefono: '+g('f-phone'),
       g('f-email')?'Correo: '+g('f-email'):null,'',
-      'DIRECCION DE ENTREGA',
-      'Calle: '+g('f-address'),
-      'Ciudad: '+g('f-city')+', '+g('f-state'),
-      'C.P.: '+g('f-cp'),
+      'DIRECCION DE ENTREGA','Calle: '+g('f-address'),'Ciudad: '+g('f-city')+', '+g('f-state'),'C.P.: '+g('f-cp'),
       g('f-refs')?'Referencias: '+g('f-refs'):null,'',
       'ARTICULOS',
       ...cart.map(i=>'- '+i.name+(i.size?' | Talla: '+i.size:'')+(i.color?' | Color: '+i.color:'')+' | Cantidad: '+(i.qty||1)+' | Precio: $'+(i.price*(i.qty||1)).toLocaleString('es-MX')+' MXN'),'',
-      'RESUMEN',
-      'Subtotal: $'+s.toLocaleString('es-MX')+' MXN',
-      'Envio: '+(free?'GRATIS':'$150 MXN'),
-      'Total: $'+t.toLocaleString('es-MX')+' MXN',
-      g('f-notes')?'\nNotas: '+g('f-notes'):null,'',
-      'Por favor confirmar disponibilidad y metodo de pago.',
-    ].filter(l=>l!==null).join('\n')
-    return 'https://wa.me/5217773019146?text='+encodeURIComponent(lines)
+      'RESUMEN','Subtotal: $'+s.toLocaleString('es-MX')+' MXN','Envio: '+(free?'GRATIS':'$150 MXN'),'Total: $'+t.toLocaleString('es-MX')+' MXN',
+      g('f-notes')?'\nNotas: '+g('f-notes'):null,'','Por favor confirmar disponibilidad y metodo de pago.',
+    ].filter(l=>l!==null).join('\n'))
   }
 
-  function save() {
-    localStorage.setItem('cart', JSON.stringify(cart))
-    window.dispatchEvent(new Event('cartUpdated'))
-  }
+  function save() { localStorage.setItem('cart', JSON.stringify(cart)); window.dispatchEvent(new Event('cartUpdated')) }
 
-  // ── EVENTOS ────────────────────────────────────────
-  document.getElementById('btn-to-form')?.addEventListener('click', () => {
-    if (!cart.length) return
-    renderSummaryItems(); goTo(2)
-  })
+  document.getElementById('btn-to-form')?.addEventListener('click', () => { if (!cart.length) return; renderMiniItems(); goTo(2) })
   document.getElementById('btn-back')?.addEventListener('click', () => goTo(1))
   document.getElementById('btn-send-wa')?.addEventListener('click', () => {
-    if (!validate()) {
-      document.querySelector('.err')?.scrollIntoView({behavior:'smooth', block:'center'})
-      return
-    }
+    if (!validate()) { document.querySelector('.err')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); return }
     window.open(buildWA(), '_blank')
-    cart = []; save(); goTo(3)
-    document.getElementById('cta-2').style.display = 'none'
+    cart = []; save(); goTo(3); document.getElementById('cta-2').style.display = 'none'
   })
+
+  const io = new IntersectionObserver(entries => entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('v'); io.unobserve(e.target) } }), { threshold: 0.06 })
+  document.querySelectorAll('.rr-reveal').forEach(el => io.observe(el))
+  window.addEventListener('cartUpdated', () => { cart = JSON.parse(localStorage.getItem('cart') || '[]'); renderCart() })
 
   renderCart()
 </script>
 </Layout>
-

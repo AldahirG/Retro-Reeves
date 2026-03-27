@@ -2,6 +2,7 @@
 import Layout from "../../layouts/Layout.astro"
 import Navbar from "../../components/navbar"
 import Footer from "../../components/footer"
+import QuickviewModal from "../../components/products/QuickviewModal.astro"
 import { getProducts, getProductBySlug } from "../../lib/products"
 
 const base = import.meta.env.BASE_URL.replace(/\/$/, "")
@@ -623,16 +624,37 @@ const fallback = related.length
           </div>
           <div class="rr-related-grid">
             {fallback.map((p, i) => (
-              <a href={`${base}/product/${p.slug}`} class={`rr-rel-card rr-reveal rr-reveal-d${Math.min(i+1,4)}`}>
+              <div class={`rr-rel-card rr-reveal rr-reveal-d${Math.min(i+1,4)}`}>
                 <div class="rr-rel-card__img-wrap">
                   <img src={`${base}/${p.images[0]}`} alt={p.name} class="rr-rel-card__img rr-rel-card__img--p" loading="lazy" />
                   {p.images[1] && <img src={`${base}/${p.images[1]}`} alt={p.name} class="rr-rel-card__img rr-rel-card__img--s" loading="lazy" />}
+                  <button
+                    class="rr-qv-trigger"
+                    data-slug={p.slug}
+                    data-name={p.name}
+                    data-price={String(p.price)}
+                    data-images={JSON.stringify(p.images)}
+                    data-sizes={JSON.stringify(p.sizes)}
+                    data-colors={JSON.stringify(p.colors)}
+                    data-description={(p as any).description ?? ''}
+                    data-limited={(p as any).limited ? '1' : ''}
+                    data-drop={(p as any).drop ? '1' : ''}
+                    type="button"
+                    aria-label={`Vista rápida de ${p.name}`}
+                  >
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+                      <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                    </svg>
+                    Vista rápida
+                  </button>
                 </div>
-                <div class="rr-rel-card__info">
-                  <div class="rr-rel-card__name">{p.name}</div>
-                  <div class="rr-rel-card__price">${p.price} MXN</div>
-                </div>
-              </a>
+                <a href={`${base}/product/${p.slug}`} style="text-decoration:none;color:inherit;display:block;">
+                  <div class="rr-rel-card__info">
+                    <div class="rr-rel-card__name">{p.name}</div>
+                    <div class="rr-rel-card__price">${p.price} MXN</div>
+                  </div>
+                </a>
+              </div>
             ))}
           </div>
         </div>
@@ -647,6 +669,7 @@ const fallback = related.length
   )}
 
   <Footer />
+  <QuickviewModal base={base} />
 </main>
 
 {/* Toast */}
