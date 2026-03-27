@@ -8,12 +8,143 @@
     "drop": true,
     "dropSlug": "jjk-shadow-drop",
     "limited": true,
+    "bestseller": true,
     "sizes": ["CH", "M", "G", "XG"],
     "colors": ["Negro", "Blanco"],
     "images": [
-      "/images/products/toji-vol2/8.png",
-      "/images/products/toji-vol2/10.png"
+      "images/products/toji-vol2/8.png",
+      "images/products/toji-vol2/10.png"
     ],
-    "description": "Inspirada en la energía oscura..."
+    "description": "Inspirada en la energía oscura de Toji Fushiguro. Edición limitada."
+  },
+  {
+    "id": "hoodie-classic-negro",
+    "name": "Hoodie Classic Negro",
+    "slug": "hoodie-classic-negro",
+    "price": 699,
+    "category": "hoodies",
+    "limited": false,
+    "bestseller": true,
+    "sizes": ["CH", "M", "G", "XG", "XXG"],
+    "colors": ["Negro"],
+    "images": [
+      "images/product1.jpg",
+      "images/product2.jpg"
+    ],
+    "description": "Hoodie de peso completo. Fleece 320gsm. Corte oversized."
+  },
+  {
+    "id": "short-gym-pro",
+    "name": "Short Gym Pro",
+    "slug": "short-gym-pro",
+    "price": 349,
+    "category": "gym",
+    "limited": false,
+    "bestseller": true,
+    "sizes": ["CH", "M", "G", "XG"],
+    "colors": ["Negro", "Gris", "Blanco"],
+    "images": [
+      "images/suit-1.jpg",
+      "images/suit-2.jpg",
+      "images/suit-3.jpg"
+    ],
+    "description": "Short técnico 4-way stretch. Bolsillo con cierre y liner interno."
+  },
+  {
+    "id": "gorra-retro-logo",
+    "name": "Gorra Retro Logo",
+    "slug": "gorra-retro-logo",
+    "price": 299,
+    "category": "gorras",
+    "limited": false,
+    "bestseller": true,
+    "sizes": ["Única"],
+    "colors": ["Negro", "Beige"],
+    "images": [
+      "images/product5.jpg",
+      "images/product6.jpg"
+    ],
+    "description": "Dad hat 6 paneles. Bordado frontal. Ajuste de metal."
+  },
+  {
+    "id": "playera-basica-blanca",
+    "name": "Playera Básica Blanca",
+    "slug": "playera-basica-blanca",
+    "price": 279,
+    "category": "manga-corta",
+    "limited": false,
+    "bestseller": false,
+    "sizes": ["CH", "M", "G", "XG"],
+    "colors": ["Blanco"],
+    "images": [
+      "images/product7.jpg",
+      "images/product8.jpg"
+    ],
+    "description": "Algodón peinado 200gsm. Corte regular unisex."
+  },
+  {
+    "id": "playera-manga-corta-negra",
+    "name": "Playera Manga Corta Negra",
+    "slug": "playera-manga-corta-negra",
+    "price": 279,
+    "category": "manga-corta",
+    "limited": false,
+    "bestseller": false,
+    "sizes": ["CH", "M", "G", "XG"],
+    "colors": ["Negro"],
+    "images": [
+      "images/product9.jpg",
+      "images/product10.jpg"
+    ],
+    "description": "Algodón peinado 200gsm. Corte regular unisex."
+  },
+  {
+    "id": "conjunto-gym-vol1",
+    "name": "Conjunto Gym Vol.1",
+    "slug": "conjunto-gym-vol1",
+    "price": 649,
+    "category": "gym",
+    "limited": false,
+    "bestseller": false,
+    "sizes": ["CH", "M", "G", "XG"],
+    "colors": ["Negro", "Gris"],
+    "images": [
+      "images/suit-4.jpg",
+      "images/suit-5.jpg",
+      "images/suit-6.jpg"
+    ],
+    "description": "Set completo tank + short. Tela técnica 4-way stretch."
+  },
+  {
+    "id": "playera-premium-v1",
+    "name": "Playera Premium V1",
+    "slug": "playera-premium-v1",
+    "price": 399,
+    "category": "manga-corta",
+    "limited": false,
+    "bestseller": false,
+    "sizes": ["CH", "M", "G", "XG"],
+    "colors": ["Negro", "Blanco"],
+    "images": [
+      "images/product11.jpg",
+      "images/product12.jpg",
+      "images/product13.jpg"
+    ],
+    "description": "Tela premium 220gsm. Hombros caídos. Fit moderno."
+  },
+  {
+    "id": "zapatilla-retro-runner",
+    "name": "Zapatilla Retro Runner",
+    "slug": "zapatilla-retro-runner",
+    "price": 1299,
+    "category": "zapatos",
+    "limited": true,
+    "bestseller": false,
+    "sizes": ["25", "26", "27", "28", "29", "30"],
+    "colors": ["Blanco/Negro", "Negro/Rojo"],
+    "images": [
+      "images/mirror.png"
+    ],
+    "description": "Suela chunky. Upper sintético de alta calidad. Estética Y2K."
   }
 ]

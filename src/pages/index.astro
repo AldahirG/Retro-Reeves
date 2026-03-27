@@ -3,60 +3,938 @@ import Layout from '../layouts/Layout.astro';
 import '../../assets/scss/astro-ecommerce.scss';
 import Navbar from '../components/navbar';
 import Footer from '../components/footer';
-import CardProduct from '../components/products/cardProduct';
-import CardCategory from '../components/products/cardCategory';
-import { getProducts } from "../lib/products";
+import { getProducts } from '../lib/products';
+import { getDrops } from '../lib/drops';
 
-const products = getProducts();
-const featured = products.slice(0, 4);
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const products    = getProducts();
+const drops       = getDrops();
+const heroDrop    = drops[0];
+
+// Hero slides: heroImage del drop activo + imágenes del primer producto del drop
+const heroProducts = products.filter(p => (p as any).dropSlug === heroDrop?.slug);
+const heroSlides = [
+  heroDrop?.heroImage,
+  ...heroProducts.flatMap(p => p.images).slice(0, 3),
+].filter(Boolean).map(src => `${base}/${src}`);
+
+const bestsellers = products.filter(p => (p as any).bestseller).slice(0, 4).length
+  ? products.filter(p => (p as any).bestseller).slice(0, 4)
+  : products.slice(0, 4);
+
+// Lookbook: primeras 5 imágenes de productos variados
+const lookbookImgs = products
+  .flatMap(p => p.images.map(img => ({ img: `${base}/${img}`, name: p.name, price: p.price, slug: p.slug })))
+  .slice(0, 5);
+
+const categories = [
+  { label: 'Hoodies',     slug: 'hoodies',    icon: 'bi-box-seam'      },
+  { label: 'Gym',         slug: 'gym',         icon: 'bi-lightning-fill'},
+  { label: 'Manga Corta', slug: 'manga-corta', icon: 'bi-person'        },
+  { label: 'Gorras',      slug: 'gorras',      icon: 'bi-pentagon-fill' },
+  { label: 'Zapatos',     slug: 'zapatos',     icon: 'bi-dribbble'      },
+];
 ---
 
-<Layout title="Retro Reeves">
-  <main>
-    <Navbar />
+<Layout title="Retro Reeves — Streetwear · Anime · Gym">
+<style>
+  :root {
+    --rr-ink:    #0d0d0d;
+    --rr-paper:  #ffffff;
+    --rr-muted:  #f5f5f3;
+    --rr-border: rgba(0,0,0,0.10);
+    --rr-mono:   "PT Mono", monospace;
+    --rr-sans:   "Noto Sans", sans-serif;
+  }
+ * { box-sizing: border-box; }
+  html, body { overflow-x: hidden; max-width: 100%; }
+  .container { overflow-x: hidden; }
 
-    <!-- HERO -->
-    <section class="py-10 text-center">
-      <div class="container">
-        <h1 class="display-4 fw-bold">Retro Reeves</h1>
-        <p class="lead">Streetwear • Anime • Gym • Cultura</p>
+  /* ── HERO CARRUSEL ─────────────────────────────────── */
+  .rr-hero {
+    position: relative;
+    height: 100vh;
+    min-height: 600px;
+    margin-top: -64px;
+    overflow: hidden;
+    background: var(--rr-ink);
+  }
+
+  .rr-hero__slides {
+    position: absolute;
+    inset: 0;
+  }
+  .rr-hero__slide {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+    opacity: 0;
+    transform: scale(1.06);
+    transition: opacity 1s ease, transform 7s ease;
+    will-change: opacity, transform;
+    filter: brightness(0.48);
+  }
+  .rr-hero__slide.active {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  /* Parallax layer — se mueve con scroll vía JS */
+  .rr-hero__parallax {
+    position: absolute;
+    inset: -15%;
+    pointer-events: none;
+  }
+
+  .rr-hero__overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      to top,
+      rgba(0,0,0,0.85) 0%,
+      rgba(0,0,0,0.2)  55%,
+      transparent       100%
+    );
+    pointer-events: none;
+  }
+
+  /* Contenido del hero */
+  .rr-hero__content {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 0 2rem 3.5rem;
+    max-width: 1400px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: flex-end;
+    gap: 2rem;
+  }
+  .rr-hero__left { max-width: 640px; }
+
+  .rr-hero__tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--rr-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.35);
+    padding: 0.3rem 0.8rem;
+    margin-bottom: 1rem;
+  }
+  .rr-hero__tag-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #4ade80;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%       { opacity: 0.4; transform: scale(1.4); }
+  }
+
+  .rr-hero__title {
+    font-family: var(--rr-sans);
+    font-weight: 800;
+    font-size: clamp(3rem, 8vw, 7rem);
+    line-height: 0.92;
+    letter-spacing: -0.04em;
+    color: #fff;
+    margin-bottom: 1rem;
+    overflow: hidden;
+  }
+  .rr-hero__title-inner {
+    display: block;
+    transform: translateY(100%);
+    animation: slideUp 0.8s 0.2s cubic-bezier(.16,1,.3,1) forwards;
+  }
+  @keyframes slideUp {
+    to { transform: translateY(0); }
+  }
+
+  .rr-hero__sub {
+    font-size: 1rem;
+    color: rgba(255,255,255,0.6);
+    margin-bottom: 1.75rem;
+    opacity: 0;
+    animation: fadeIn 0.6s 0.6s ease forwards;
+  }
+  @keyframes fadeIn { to { opacity: 1; } }
+
+  .rr-hero__cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-family: var(--rr-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    background: #fff;
+    color: var(--rr-ink);
+    padding: 0.9rem 2rem;
+    text-decoration: none;
+    border: 1px solid transparent;
+    transition: background 0.2s, color 0.2s, border-color 0.2s;
+    opacity: 0;
+    animation: fadeIn 0.6s 0.8s ease forwards;
+  }
+  .rr-hero__cta:hover { background: transparent; color: #fff; border-color: #fff; }
+
+  /* Countdown — lado derecho del hero */
+  .rr-hero__countdown {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.5rem;
+    opacity: 0;
+    animation: fadeIn 0.6s 1s ease forwards;
+  }
+  .rr-countdown__label {
+    font-family: var(--rr-mono);
+    font-size: 0.58rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.4);
+  }
+  .rr-countdown__units {
+    display: flex;
+    gap: 0.35rem;
+    align-items: flex-end;
+  }
+  .rr-countdown__unit {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 56px;
+  }
+  .rr-countdown__num {
+    font-family: var(--rr-mono);
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1;
+    transition: color 0.3s;
+  }
+  .rr-countdown__num.tick { color: #4ade80; }
+  .rr-countdown__unit-label {
+    font-family: var(--rr-mono);
+    font-size: 0.55rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.35);
+    margin-top: 0.2rem;
+  }
+  .rr-countdown__sep {
+    font-family: var(--rr-mono);
+    font-size: 1.8rem;
+    color: rgba(255,255,255,0.2);
+    padding-bottom: 0.3rem;
+    line-height: 1;
+  }
+
+  /* Dots del carrusel */
+  .rr-hero__dots {
+    position: absolute;
+    bottom: 1.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 0.5rem;
+    z-index: 3;
+  }
+  .rr-hero__dot {
+    width: 24px;
+    height: 2px;
+    background: rgba(255,255,255,0.3);
+    cursor: pointer;
+    transition: background 0.3s, width 0.3s;
+    border: none;
+    padding: 0;
+  }
+  .rr-hero__dot.active {
+    background: #fff;
+    width: 48px;
+  }
+
+  /* Progress bar */
+  .rr-hero__progress {
+    position: absolute;
+    top: 64px;
+    left: 0;
+    height: 2px;
+    background: rgba(255,255,255,0.7);
+    width: 0%;
+    z-index: 3;
+    transition: width linear;
+  }
+
+  @media (max-width: 640px) {
+.rr-hero__content { grid-template-columns: 1fr; padding: 0 1.25rem 3rem; }
+    .rr-hero__countdown { display: none; }
+  }
+
+  /* ── TICKER ─────────────────────────────────────────── */
+  .rr-ticker {
+    overflow-x: hidden;
+    background: var(--rr-ink);
+    color: #fff;
+    padding: 0.6rem 0;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+  .rr-ticker__inner {
+    display: inline-flex;
+    gap: 2.5rem;
+    animation: ticker 30s linear infinite;
+  }
+  .rr-ticker__inner:hover { animation-play-state: paused; }
+  .rr-ticker span {
+    font-family: var(--rr-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+  .rr-ticker .sep { color: rgba(255,255,255,0.25); }
+  .rr-ticker .hl  { color: #4ade80; }
+  @keyframes ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+  /* ── SECTION ────────────────────────────────────────── */
+  .rr-section { padding: 4.5rem 0; }
+  .rr-section__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    border-bottom: 1px solid var(--rr-border);
+    padding-bottom: 0.75rem;
+    margin-bottom: 2rem;
+  }
+  .rr-section__title {
+    font-family: var(--rr-sans);
+    font-weight: 800;
+    font-size: 1.5rem;
+    letter-spacing: -0.03em;
+  }
+  .rr-section__link {
+    font-family: var(--rr-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--rr-ink);
+    text-decoration: none;
+    opacity: 0.4;
+    transition: opacity 0.2s;
+  }
+  .rr-section__link:hover { opacity: 1; }
+
+  /* ── DROPS GRID ─────────────────────────────────────── */
+  .rr-drops-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: 1rem;
+  }
+  @media (max-width: 768px) {
+    .rr-drops-grid { grid-template-columns: 1fr 1fr; }
+    .rr-drop-card:first-child { grid-column: span 2; }
+  }
+  .rr-drop-card {
+    position: relative;
+    overflow: hidden;
+    background: var(--rr-muted);
+    text-decoration: none;
+    color: var(--rr-ink);
+    display: block;
+    transition: transform 0.3s cubic-bezier(.22,.68,0,1.2);
+  }
+  .rr-drop-card:hover { transform: translateY(-4px); }
+  .rr-drop-card__img {
+    width: 100%;
+    aspect-ratio: 4/3;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.5s ease;
+  }
+  .rr-drop-card:hover .rr-drop-card__img { transform: scale(1.04); }
+  .rr-drop-card__badge {
+    position: absolute;
+    top: 0.85rem; left: 0.85rem;
+    font-family: var(--rr-mono);
+    font-size: 0.58rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    background: var(--rr-ink);
+    color: #fff;
+    padding: 0.25rem 0.65rem;
+  }
+  .rr-drop-card__info {
+    padding: 1rem;
+    border-top: 1px solid var(--rr-border);
+  }
+  .rr-drop-card__name {
+    font-family: var(--rr-sans);
+    font-weight: 700;
+    font-size: 0.9rem;
+    margin-bottom: 0.2rem;
+  }
+  .rr-drop-card__meta {
+    font-family: var(--rr-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.08em;
+    color: rgba(0,0,0,0.4);
+  }
+
+  /* ── CATEGORIES ─────────────────────────────────────── */
+  .rr-categories {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 1rem;
+    text-align: center;
+  }
+  @media (max-width: 600px) { .rr-categories { grid-template-columns: repeat(3,1fr); } }
+  .rr-cat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.6rem;
+    text-decoration: none;
+    color: var(--rr-ink);
+    padding: 1.25rem 0.5rem;
+    border: 1px solid var(--rr-border);
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .rr-cat:hover { border-color: var(--rr-ink); background: var(--rr-muted); }
+  .rr-cat i { font-size: 1.4rem; }
+  .rr-cat__label {
+    font-family: var(--rr-mono);
+    font-size: 0.58rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+
+  /* ── LOOKBOOK ───────────────────────────────────────── */
+  .rr-lookbook { background: var(--rr-ink); padding: 4.5rem 0; }
+  .rr-lookbook__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    padding-bottom: 0.75rem;
+    margin-bottom: 2rem;
+  }
+  .rr-lookbook__title {
+    font-family: var(--rr-sans);
+    font-weight: 800;
+    font-size: 1.5rem;
+    letter-spacing: -0.03em;
+    color: #fff;
+  }
+  .rr-lookbook__link {
+    font-family: var(--rr-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.35);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  .rr-lookbook__link:hover { color: #fff; }
+
+  .rr-lookbook__grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    grid-template-rows: auto auto;
+    gap: 0.5rem;
+  }
+  @media (max-width: 640px) { .rr-lookbook__grid { grid-template-columns: 1fr 1fr; } }
+
+  .rr-lookbook__item {
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+    text-decoration: none;
+    display: block;
+  }
+  .rr-lookbook__item:first-child {
+    grid-row: span 2;
+  }
+  .rr-lookbook__item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.6s ease;
+    min-height: 200px;
+  }
+  .rr-lookbook__item:hover img { transform: scale(1.05); }
+
+  .rr-lookbook__item-info {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    padding: 1rem;
+    background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 100%);
+    transform: translateY(100%);
+    transition: transform 0.3s ease;
+  }
+  .rr-lookbook__item:hover .rr-lookbook__item-info { transform: translateY(0); }
+
+  .rr-lookbook__item-name {
+    font-family: var(--rr-sans);
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: #fff;
+    margin-bottom: 0.2rem;
+  }
+  .rr-lookbook__item-price {
+    font-family: var(--rr-mono);
+    font-size: 0.7rem;
+    color: rgba(255,255,255,0.7);
+  }
+
+  /* ── PRODUCTS GRID ──────────────────────────────────── */
+  .rr-products-grid {
+    display: grid;
+    grid-template-columns: repeat(4,1fr);
+    gap: 1rem;
+  }
+  @media (max-width: 900px) { .rr-products-grid { grid-template-columns: repeat(2,1fr); } }
+
+  .rr-product-card {
+    border: 1px solid var(--rr-border);
+    text-decoration: none;
+    color: var(--rr-ink);
+    display: block;
+    transition: transform 0.3s cubic-bezier(.22,.68,0,1.2), border-color 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .rr-product-card:hover { transform: translateY(-5px); border-color: var(--rr-ink); }
+
+  .rr-product-card__img-wrap {
+    overflow: hidden;
+    background: var(--rr-muted);
+    aspect-ratio: 3/4;
+    position: relative;
+  }
+  /* Hover: muestra segunda imagen */
+  .rr-product-card__img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+    position: absolute;
+    inset: 0;
+    transition: opacity 0.4s ease, transform 0.5s ease;
+  }
+  .rr-product-card__img--primary  { opacity: 1; transform: scale(1); }
+  .rr-product-card__img--secondary { opacity: 0; transform: scale(1.04); }
+  .rr-product-card:hover .rr-product-card__img--primary  { opacity: 0; }
+  .rr-product-card:hover .rr-product-card__img--secondary { opacity: 1; transform: scale(1); }
+
+  .rr-product-card__info {
+    padding: 0.85rem;
+    border-top: 1px solid var(--rr-border);
+  }
+  .rr-product-card__name {
+    font-family: var(--rr-sans);
+    font-weight: 700;
+    font-size: 0.85rem;
+    margin-bottom: 0.2rem;
+  }
+  .rr-product-card__sizes {
+    font-family: var(--rr-mono);
+    font-size: 0.58rem;
+    letter-spacing: 0.08em;
+    color: rgba(0,0,0,0.4);
+    margin-bottom: 0.5rem;
+  }
+  .rr-product-card__footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .rr-product-card__price {
+    font-family: var(--rr-mono);
+    font-weight: 700;
+    font-size: 0.88rem;
+  }
+  .rr-product-card__tag {
+    font-family: var(--rr-mono);
+    font-size: 0.55rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    background: var(--rr-ink);
+    color: #fff;
+    padding: 0.2rem 0.55rem;
+  }
+
+  /* ── WA BANNER ──────────────────────────────────────── */
+  .rr-wa-banner {
+    background: var(--rr-ink);
+    color: #fff;
+    padding: 4rem 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 1.5rem;
+  }
+  .rr-wa-banner__eyebrow {
+    font-family: var(--rr-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.4);
+  }
+  .rr-wa-banner__title {
+    font-family: var(--rr-sans);
+    font-weight: 800;
+    font-size: clamp(1.8rem, 5vw, 3rem);
+    letter-spacing: -0.03em;
+    line-height: 1;
+    max-width: 560px;
+  }
+  .rr-wa-banner__sub {
+    font-size: 0.95rem;
+    color: rgba(255,255,255,0.5);
+    max-width: 400px;
+  }
+  .rr-wa-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-family: var(--rr-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    background: #fff;
+    color: var(--rr-ink);
+    padding: 1rem 2.25rem;
+    text-decoration: none;
+    transition: opacity 0.2s;
+  }
+  .rr-wa-btn:hover { opacity: 0.85; }
+
+  /* ── SCROLL REVEAL ──────────────────────────────────── */
+  .rr-reveal {
+    opacity: 0;
+    transform: translateY(28px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+  .rr-reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .rr-reveal-delay-1 { transition-delay: 0.1s; }
+  .rr-reveal-delay-2 { transition-delay: 0.2s; }
+  .rr-reveal-delay-3 { transition-delay: 0.3s; }
+</style>
+
+<main>
+  <Navbar client:load />
+
+  <!-- ══ HERO CARRUSEL ══ -->
+  <section class="rr-hero" id="rr-hero">
+    <!-- Slides -->
+    <div class="rr-hero__slides" id="hero-slides">
+      {heroSlides.map((src, i) => (
+        <div
+          class={`rr-hero__slide${i === 0 ? ' active' : ''}`}
+          style={`background-image: url('${src}')`}
+          data-index={i}
+        />
+      ))}
+    </div>
+
+    <!-- Parallax wrapper -->
+    <div class="rr-hero__parallax" id="hero-parallax" />
+
+    <!-- Overlay gradiente -->
+    <div class="rr-hero__overlay" />
+
+    <!-- Progress bar -->
+    <div class="rr-hero__progress" id="hero-progress" />
+
+    <!-- Contenido -->
+    <div class="rr-hero__content container">
+      <div class="rr-hero__left">
+        <div class="rr-hero__tag">
+          <span class="rr-hero__tag-dot" />
+          Drop activo
+        </div>
+        <h1 class="rr-hero__title">
+          <span class="rr-hero__title-inner">{heroDrop?.name ?? 'Retro Reeves'}</span>
+        </h1>
+        <p class="rr-hero__sub">{heroDrop?.subtitle ?? 'Streetwear · Anime · Gym · Cultura'}</p>
+        <a href={`${base}/coleccion/${heroDrop?.slug ?? ''}`} class="rr-hero__cta">
+          Ver colección →
+        </a>
       </div>
-    </section>
 
-    <!-- PRODUCTOS DESTACADOS -->
-    <section class="container py-5">
-      <div class="text-center mb-5">
-        <h3>Destacados</h3>
-      </div>
-
-      <div class="row">
-        {featured.map(product => (
-          <div class="col-12 col-md-6 col-lg-3 mb-4">
-            <a href={`/product/${product.slug}`} class="text-decoration-none text-dark">
-              <CardProduct
-                thumb_src={product.images[0]}
-                thumb_alt={product.name}
-                title={product.name}
-                price={product.price}
-              />
-            </a>
+      <!-- Countdown -->
+      <div class="rr-hero__countdown" id="hero-countdown" data-end={heroDrop?.endDate}>
+        <span class="rr-countdown__label">Disponible hasta</span>
+        <div class="rr-countdown__units">
+          <div class="rr-countdown__unit">
+            <span class="rr-countdown__num" id="cd-days">--</span>
+            <span class="rr-countdown__unit-label">días</span>
           </div>
+          <span class="rr-countdown__sep">:</span>
+          <div class="rr-countdown__unit">
+            <span class="rr-countdown__num" id="cd-hours">--</span>
+            <span class="rr-countdown__unit-label">hrs</span>
+          </div>
+          <span class="rr-countdown__sep">:</span>
+          <div class="rr-countdown__unit">
+            <span class="rr-countdown__num" id="cd-mins">--</span>
+            <span class="rr-countdown__unit-label">min</span>
+          </div>
+          <span class="rr-countdown__sep">:</span>
+          <div class="rr-countdown__unit">
+            <span class="rr-countdown__num" id="cd-secs">--</span>
+            <span class="rr-countdown__unit-label">seg</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dots -->
+    <div class="rr-hero__dots" id="hero-dots">
+      {heroSlides.map((_, i) => (
+        <button class={`rr-hero__dot${i === 0 ? ' active' : ''}`} data-slide={i} aria-label={`Slide ${i + 1}`} />
+      ))}
+    </div>
+  </section>
+
+  <!-- ══ TICKER ══ -->
+  <div class="rr-ticker" aria-hidden="true">
+    <div class="rr-ticker__inner">
+      {[1,2].map(() => (
+        <>
+          <span class="hl">● {heroDrop?.name ?? 'Drop activo'}</span>
+          <span class="sep">·</span>
+          <span>Envío gratis +$800 MXN</span>
+          <span class="sep">·</span>
+          <span>Edición limitada</span>
+          <span class="sep">·</span>
+          <span>Pago por WhatsApp</span>
+          <span class="sep">·</span>
+          <span>Nuevos drops cada mes</span>
+          <span class="sep">·</span>
+          <span>Streetwear · Anime · Gym</span>
+          <span class="sep">·</span>
+        </>
+      ))}
+    </div>
+  </div>
+
+  <!-- ══ DROPS ══ -->
+  <section class="rr-section container rr-reveal">
+    <div class="rr-section__header">
+      <h2 class="rr-section__title">Nuevos Drops</h2>
+      <a href={`${base}/colecciones`} class="rr-section__link">Ver todos →</a>
+    </div>
+    <div class="rr-drops-grid">
+      {drops.map((drop, i) => (
+        <a href={`${base}/coleccion/${drop.slug}`} class={`rr-drop-card rr-reveal rr-reveal-delay-${Math.min(i+1,3)}`}>
+          <img src={`${base}/${drop.heroImage}`} alt={drop.name} class="rr-drop-card__img" loading={i===0?'eager':'lazy'} />
+          <span class="rr-drop-card__badge">Drop</span>
+          <div class="rr-drop-card__info">
+            <div class="rr-drop-card__name">{drop.name}</div>
+            <div class="rr-drop-card__meta">{drop.subtitle}</div>
+          </div>
+        </a>
+      ))}
+    </div>
+  </section>
+
+  <!-- ══ CATEGORIES ══ -->
+  <section class="rr-section container rr-reveal">
+    <div class="rr-section__header">
+      <h2 class="rr-section__title">Categorías</h2>
+    </div>
+    <div class="rr-categories">
+      {categories.map((cat,i) => (
+        <a href={`${base}/coleccion/${cat.slug}`} class={`rr-cat rr-reveal rr-reveal-delay-${Math.min(i+1,3)}`}>
+          <i class={`bi ${cat.icon}`} />
+          <span class="rr-cat__label">{cat.label}</span>
+        </a>
+      ))}
+    </div>
+  </section>
+
+  <!-- ══ LOOKBOOK ══ -->
+  <section class="rr-lookbook rr-reveal">
+    <div class="container">
+      <div class="rr-lookbook__header">
+        <h2 class="rr-lookbook__title">Lookbook</h2>
+        <a href={`${base}/catalogo`} class="rr-lookbook__link">Ver catálogo →</a>
+      </div>
+      <div class="rr-lookbook__grid">
+        {lookbookImgs.map((item, i) => (
+          <a
+            href={`${base}/product/${item.slug}`}
+            class={`rr-lookbook__item rr-reveal rr-reveal-delay-${Math.min(i,3)}`}
+          >
+            <img src={item.img} alt={item.name} loading="lazy" />
+            <div class="rr-lookbook__item-info">
+              <div class="rr-lookbook__item-name">{item.name}</div>
+              <div class="rr-lookbook__item-price">${item.price} MXN</div>
+            </div>
+          </a>
         ))}
       </div>
-    </section>
+    </div>
+  </section>
 
-    <!-- CTA WHATSAPP -->
-    <section class="text-center py-5 bg-light">
-      <h4>¿Listo para tu próximo drop?</h4>
-      <a 
-        href="https://wa.me/521TU_NUMERO" 
-        target="_blank"
-        class="btn btn-dark mt-3"
-      >
-        Comprar por WhatsApp
-      </a>
-    </section>
+  <!-- ══ MÁS VENDIDOS ══ -->
+  <section class="rr-section container rr-reveal">
+    <div class="rr-section__header">
+      <h2 class="rr-section__title">Más vendidos</h2>
+      <a href={`${base}/catalogo`} class="rr-section__link">Ver catálogo →</a>
+    </div>
+    <div class="rr-products-grid">
+      {bestsellers.map((product, i) => (
+        <a href={`${base}/product/${product.slug}`} class={`rr-product-card rr-reveal rr-reveal-delay-${Math.min(i+1,3)}`}>
+          <div class="rr-product-card__img-wrap">
+            <img src={`${base}/${product.images[0]}`} alt={product.name} class="rr-product-card__img rr-product-card__img--primary" loading="lazy" />
+            {product.images[1] && (
+              <img src={`${base}/${product.images[1]}`} alt={product.name} class="rr-product-card__img rr-product-card__img--secondary" loading="lazy" />
+            )}
+          </div>
+          <div class="rr-product-card__info">
+            <div class="rr-product-card__name">{product.name}</div>
+            <div class="rr-product-card__sizes">{product.sizes.join(' · ')}</div>
+            <div class="rr-product-card__footer">
+              <span class="rr-product-card__price">${product.price} MXN</span>
+              {(product as any).limited && <span class="rr-product-card__tag">Limited</span>}
+            </div>
+          </div>
+        </a>
+      ))}
+    </div>
+  </section>
 
-    <Footer />
-  </main>
+  <!-- ══ WHATSAPP ══ -->
+  <section class="rr-wa-banner rr-reveal">
+    <div class="rr-wa-banner__eyebrow">Atención personalizada</div>
+    <h2 class="rr-wa-banner__title">¿Listo para tu próximo drop?</h2>
+    <p class="rr-wa-banner__sub">Asesoría directa, pedidos rápidos y envío a todo México.</p>
+    <a href="https://wa.me/5217773019146" target="_blank" rel="noopener noreferrer" class="rr-wa-btn">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+      </svg>
+      Comprar por WhatsApp
+    </a>
+  </section>
+
+  <Footer />
+</main>
+
+<script>
+  // ── CARRUSEL ──────────────────────────────────────────
+  const slides   = document.querySelectorAll<HTMLElement>('.rr-hero__slide');
+  const dots     = document.querySelectorAll<HTMLElement>('.rr-hero__dot');
+  const progress = document.getElementById('hero-progress') as HTMLElement;
+  const INTERVAL = 5000;
+  let current = 0;
+  let timer: ReturnType<typeof setTimeout>;
+  let progTimer: ReturnType<typeof setTimeout>;
+
+  function goTo(idx: number) {
+    slides[current]?.classList.remove('active');
+    dots[current]?.classList.remove('active');
+    current = (idx + slides.length) % slides.length;
+    slides[current]?.classList.add('active');
+    dots[current]?.classList.add('active');
+    startProgress();
+  }
+
+  function startProgress() {
+    clearTimeout(progTimer);
+    if (!progress) return;
+    progress.style.transition = 'none';
+    progress.style.width = '0%';
+    // Force reflow
+    progress.offsetWidth;
+    progress.style.transition = `width ${INTERVAL}ms linear`;
+    progress.style.width = '100%';
+  }
+
+  function autoPlay() {
+    clearTimeout(timer);
+    timer = setTimeout(() => { goTo(current + 1); autoPlay(); }, INTERVAL);
+  }
+
+  dots.forEach(dot => {
+    dot.addEventListener('click', () => {
+      const idx = parseInt(dot.dataset.slide ?? '0');
+      goTo(idx);
+      clearTimeout(timer);
+      autoPlay();
+    });
+  });
+
+  if (slides.length > 1) { startProgress(); autoPlay(); }
+
+  // ── COUNTDOWN ─────────────────────────────────────────
+  const cdEl = document.getElementById('hero-countdown');
+  if (cdEl?.dataset.end) {
+    const end = new Date(cdEl.dataset.end).getTime();
+    function pad(n: number) { return String(n).padStart(2, '0'); }
+    function tickCD() {
+      const diff = end - Date.now();
+      if (diff <= 0) { cdEl.innerHTML = '<span style="font-family:monospace;font-size:.7rem;color:rgba(255,255,255,.4);letter-spacing:.15em">AGOTADO</span>'; return; }
+      const d = Math.floor(diff / 86400000);
+      const h = Math.floor((diff % 86400000) / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      const s = Math.floor((diff % 60000) / 1000);
+      const set = (id: string, val: string) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (el.textContent !== val) {
+          el.textContent = val;
+          el.classList.add('tick');
+          setTimeout(() => el.classList.remove('tick'), 300);
+        }
+      };
+      set('cd-days',  pad(d));
+      set('cd-hours', pad(h));
+      set('cd-mins',  pad(m));
+      set('cd-secs',  pad(s));
+    }
+    tickCD();
+    setInterval(tickCD, 1000);
+  }
+
+  // ── PARALLAX ──────────────────────────────────────────
+  const hero = document.getElementById('rr-hero');
+  function onScroll() {
+    if (!hero) return;
+    const scrollY = window.scrollY;
+    const heroH   = hero.offsetHeight;
+    if (scrollY > heroH) return;
+    const pct = scrollY / heroH;
+    // Mueve los slides hacia arriba ligeramente al hacer scroll
+    document.querySelectorAll<HTMLElement>('.rr-hero__slide').forEach(s => {
+      s.style.transform = s.classList.contains('active')
+        ? `scale(1) translateY(${pct * 12}%)`
+        : `scale(1.06) translateY(${pct * 12}%)`;
+    });
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+
+  // ── SCROLL REVEAL ──────────────────────────────────────
+  const revealEls = document.querySelectorAll('.rr-reveal');
+  const io = new IntersectionObserver(
+    entries => entries.forEach(e => {
+      if (e.isIntersecting) { e.target.classList.add('visible'); io.unobserve(e.target); }
+    }),
+    { threshold: 0.08 }
+  );
+  revealEls.forEach(el => io.observe(el));
+</script>
 </Layout>

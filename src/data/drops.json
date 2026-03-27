@@ -1,0 +1,58 @@
+[
+  {
+    "slug": "jjk-shadow-drop",
+    "name": "JJK Shadow Drop",
+    "subtitle": "Cursed Energy. Limited Run.",
+    "heroImage": "images/bg1.jpg",
+    "accentColor": "#7b2fff",
+    "endDate": "2025-08-01T00:00:00"
+  },
+  {
+    "slug": "anime",
+    "name": "Anime Collection",
+    "subtitle": "Diseños inspirados en las series más icónicas",
+    "heroImage": "images/bg2.jpg",
+    "accentColor": "#e63946",
+    "endDate": "2025-09-01T00:00:00"
+  },
+  {
+    "slug": "hoodies",
+    "name": "Hoodies",
+    "subtitle": "Fleece pesado. Corte oversized. Todo el año.",
+    "heroImage": "images/category1.jpg",
+    "accentColor": "#0d0d0d",
+    "endDate": "2026-01-01T00:00:00"
+  },
+  {
+    "slug": "gym",
+    "name": "Gym Series",
+    "subtitle": "Rendimiento sin sacrificar el estilo.",
+    "heroImage": "images/category2.jpg",
+    "accentColor": "#2d6a4f",
+    "endDate": "2026-01-01T00:00:00"
+  },
+  {
+    "slug": "manga-corta",
+    "name": "Manga Corta",
+    "subtitle": "Básicos premium que siempre funcionan.",
+    "heroImage": "images/category3.jpg",
+    "accentColor": "#333333",
+    "endDate": "2026-01-01T00:00:00"
+  },
+  {
+    "slug": "gorras",
+    "name": "Gorras",
+    "subtitle": "El remate perfecto para cualquier look.",
+    "heroImage": "images/category4.jpg",
+    "accentColor": "#1a1a1a",
+    "endDate": "2026-01-01T00:00:00"
+  },
+  {
+    "slug": "zapatos",
+    "name": "Zapatos",
+    "subtitle": "Estética Y2K. Comodidad real.",
+    "heroImage": "images/category5.jpg",
+    "accentColor": "#c1121f",
+    "endDate": "2026-01-01T00:00:00"
+  }
+]

@@ -1,44 +1,833 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import data from '../../public/data.json';
-import '../../assets/scss/astro-ecommerce.scss';
 import Navbar from '../components/navbar';
-import UpperNavbar from '../components/store/upperNavbar';
-import CardProduct from '../components/products/cardProduct';
-import ShoppingCart from '../components/cart/shoppingCart';
-import StoreDoubleColumn from '../components/store/storeDoubleColumn';
+import Footer from '../components/footer';
 
-let cartItems = [];
-data.shoppingCart.map(id => 
-  data.products.filter(x => x.id == id).map(x => cartItems.push(x))
-)
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 ---
 
-<Layout title="Shopping Cart">
-	<main>
-    <Navbar />
+<Layout title="Carrito — Retro Reeves">
+<style>
+  /* Reset Bootstrap en esta página */
+  .rr-cart * { box-sizing: border-box !important; }
+  .rr-cart img { max-width: none !important; }
+  .rr-cart button { border-radius: 0 !important; box-shadow: none !important; outline: none !important; }
+  .rr-cart button:focus { box-shadow: none !important; outline: none !important; }
+  .rr-cart input, .rr-cart textarea { border-radius: 0 !important; box-shadow: none !important; }
+  .rr-cart input:focus, .rr-cart textarea:focus { box-shadow: none !important; }
+  .rr-cart a { text-decoration: none !important; }
 
-    <ShoppingCart products = {cartItems}/>
-    
-    <div class="container mt-5">
-      <div class="row">
-        <h5 class="mb-4">You may also like...</h5>
-        {data.products.map(product => 
-          <div class="col-md-6 col-lg-3">
-            <CardProduct 
-              thumb_src = {product.thumb_src}
-              thumb_alt = {product.thumb_alt}
-              color = {product.color}
-              title = {product.title}
-              price = {product.price}
-              position = "left"
-            />
-          </div>
-        )}        
-      </div>
-      <hr class="dark horizontal my-5" />
-      <StoreDoubleColumn />
+  /* Navbar forzada sólida */
+  .rr-cart nav[role="navigation"] {
+    background: #0d0d0d !important;
+    backdrop-filter: none !important;
+    border-bottom: none !important;
+  }
+  .rr-cart nav[role="navigation"] a,
+  .rr-cart nav[role="navigation"] span { color: #ffffff !important; }
+  .rr-cart nav[role="navigation"] svg { stroke: #ffffff; color: #ffffff; }
+
+  /* Badge contador carrito en navbar oscura */
+  .rr-cart nav[role="navigation"] span[style*="background: rgb(13"] { background: #fff !important; color: #0d0d0d !important; }
+
+  /* ── HERO BANNER ─────────────────── */
+  .rr-cart-hero {
+    background: #0d0d0d;
+    padding: 3rem 0 2.5rem;
+    margin-bottom: 0;
+  }
+  .rr-cart-hero__title {
+    font-family: "Noto Sans", sans-serif;
+    font-weight: 800;
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    letter-spacing: -0.04em;
+    color: #fff;
+    margin-bottom: 0.3rem;
+  }
+  .rr-cart-hero__sub {
+    font-family: "PT Mono", monospace;
+    font-size: 0.62rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.4);
+  }
+
+  /* ── STEPS ───────────────────────── */
+  .rr-steps {
+    display: flex;
+    align-items: center;
+    padding: 1rem 0;
+    overflow-x: auto;
+    gap: 0;
+    border-bottom: 1px solid rgba(0,0,0,0.08);
+    background: #fff;
+  }
+  .rr-step {
+    display: flex; align-items: center; gap: 0.45rem;
+    font-family: "PT Mono", monospace;
+    font-size: 0.58rem; letter-spacing: 0.1em; text-transform: uppercase;
+    color: rgba(0,0,0,0.28); white-space: nowrap; flex-shrink: 0;
+    transition: color 0.3s;
+  }
+  .rr-step.active { color: #0d0d0d; }
+  .rr-step.done   { color: #16a34a; }
+  .rr-step__num {
+    width: 22px; height: 22px; border-radius: 50%;
+    border: 1.5px solid currentColor;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.58rem; font-weight: 700; flex-shrink: 0;
+    transition: all 0.3s;
+  }
+  .rr-step.active .rr-step__num { background: #0d0d0d; color: #fff; border-color: #0d0d0d; }
+  .rr-step.done   .rr-step__num { background: #16a34a; color: #fff; border-color: #16a34a; }
+  .rr-step__sep { width: 32px; height: 1px; background: rgba(0,0,0,0.12); margin: 0 0.5rem; flex-shrink: 0; }
+
+  /* ── MAIN ────────────────────────── */
+  .rr-main {
+    background: #f5f5f3;
+    padding: 2rem 0 5rem;
+    min-height: 60vh;
+  }
+  .rr-layout {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 1.5rem;
+    align-items: start;
+  }
+  @media (max-width: 860px) {
+    .rr-layout { grid-template-columns: 1fr; }
+    .rr-sidebar { order: -1; }
+  }
+
+  /* ── PANEL ───────────────────────── */
+  .rr-panel {
+    background: #fff;
+    padding: 1.5rem;
+  }
+  .rr-panel__title {
+    font-family: "PT Mono", monospace;
+    font-size: 0.58rem; letter-spacing: 0.16em; text-transform: uppercase;
+    color: rgba(0,0,0,0.35); margin-bottom: 1.25rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid rgba(0,0,0,0.08);
+  }
+
+  /* ── TABLE HEADER ────────────────── */
+  .rr-table-head {
+    display: grid;
+    grid-template-columns: 64px 1fr 110px 90px;
+    gap: 1rem;
+    padding-bottom: 0.6rem;
+    border-bottom: 2px solid #0d0d0d;
+    margin-bottom: 0;
+  }
+  .rr-table-head span {
+    font-family: "PT Mono", monospace;
+    font-size: 0.52rem; letter-spacing: 0.14em; text-transform: uppercase;
+    color: rgba(0,0,0,0.38);
+  }
+  @media (max-width: 540px) {
+    .rr-table-head { grid-template-columns: 48px 1fr 88px; }
+    .rr-table-head .rr-th-price { display: none; }
+  }
+
+  /* ── ITEM ROW ────────────────────── */
+  .rr-item {
+    display: grid;
+    grid-template-columns: 64px 1fr 110px 90px;
+    gap: 1rem;
+    padding: 1rem 0;
+    border-bottom: 1px solid rgba(0,0,0,0.07);
+    align-items: center;
+    transition: background 0.15s;
+  }
+  .rr-item:hover { background: #fafafa; margin: 0 -1.5rem; padding: 1rem 1.5rem; }
+  @media (max-width: 540px) {
+    .rr-item { grid-template-columns: 48px 1fr 88px; }
+    .rr-item .rr-item-price { display: none; }
+  }
+
+  .rr-item__img {
+    width: 64px; height: 80px;
+    overflow: hidden; background: #f5f5f3;
+    flex-shrink: 0; display: block;
+  }
+  .rr-item__img img {
+    width: 64px !important; height: 80px !important;
+    max-width: 64px !important; object-fit: cover !important;
+    display: block !important;
+  }
+  @media (max-width: 540px) {
+    .rr-item__img { width: 48px; height: 60px; }
+    .rr-item__img img { width: 48px !important; height: 60px !important; max-width: 48px !important; }
+  }
+
+  .rr-item__name {
+    font-family: "Noto Sans", sans-serif !important;
+    font-weight: 700 !important; font-size: 0.88rem !important;
+    margin-bottom: 0.2rem !important; line-height: 1.3 !important;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    color: #0d0d0d !important;
+  }
+  .rr-item__meta {
+    font-family: "PT Mono", monospace !important;
+    font-size: 0.56rem !important; letter-spacing: 0.07em !important;
+    text-transform: uppercase !important; color: rgba(0,0,0,0.42) !important;
+    margin-bottom: 0.5rem !important; line-height: 1.4 !important;
+    display: block !important;
+  }
+  .rr-item__remove {
+    font-family: "PT Mono", monospace !important;
+    font-size: 0.52rem !important; letter-spacing: 0.06em !important;
+    text-transform: uppercase !important;
+    color: rgba(0,0,0,0.28) !important; background: none !important;
+    border: none !important; cursor: pointer !important;
+    padding: 0 !important; transition: color 0.2s;
+    display: inline-block !important; line-height: 1 !important;
+  }
+  .rr-item__remove:hover { color: #e63946 !important; }
+
+  /* QTY */
+  .rr-qty {
+    display: inline-flex; align-items: stretch;
+    border: 1px solid rgba(0,0,0,0.18); height: 30px; overflow: hidden;
+  }
+  .rr-qty__btn {
+    width: 28px; height: 30px; flex-shrink: 0;
+    background: #fff; border: none; cursor: pointer;
+    font-family: "PT Mono", monospace; font-size: 14px;
+    color: #0d0d0d; display: flex; align-items: center;
+    justify-content: center; padding: 0; line-height: 1;
+    transition: background 0.15s;
+  }
+  .rr-qty__btn:hover { background: #f5f5f3; }
+  .rr-qty__num {
+    width: 30px; height: 30px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: "PT Mono", monospace; font-size: 0.75rem; font-weight: 700;
+    border-left: 1px solid rgba(0,0,0,0.12); border-right: 1px solid rgba(0,0,0,0.12);
+    background: #fff; padding: 0;
+  }
+
+  .rr-item-price {
+    font-family: "PT Mono", monospace;
+    font-weight: 700; font-size: 0.88rem; text-align: right;
+  }
+
+  /* ── EMPTY ───────────────────────── */
+  .rr-empty {
+    text-align: center; padding: 4rem 1rem;
+  }
+  .rr-empty__icon { font-size: 2.5rem; opacity: 0.1; margin-bottom: 1rem; }
+  .rr-empty__title { font-weight: 800; font-size: 1.1rem; letter-spacing: -0.02em; margin-bottom: 0.4rem; }
+  .rr-empty__sub {
+    font-family: "PT Mono", monospace; font-size: 0.58rem;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    color: rgba(0,0,0,0.3); margin-bottom: 1.25rem;
+  }
+
+  /* ── SIDEBAR ─────────────────────── */
+  .rr-sidebar { position: sticky; top: 80px; }
+  .rr-summary {
+    background: #fff; padding: 1.5rem;
+    border-top: 3px solid #0d0d0d;
+  }
+  .rr-summary__title {
+    font-family: "PT Mono", monospace; font-size: 0.56rem;
+    letter-spacing: 0.16em; text-transform: uppercase;
+    color: rgba(0,0,0,0.32); margin-bottom: 1.1rem;
+  }
+  .rr-summary__mini {
+    display: none; flex-direction: column; gap: 0.6rem;
+    margin-bottom: 1rem; padding-bottom: 1rem;
+    border-bottom: 1px solid rgba(0,0,0,0.08);
+  }
+  .rr-summary__line {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 0.4rem;
+  }
+  .rr-summary__line-lbl {
+    font-family: "PT Mono", monospace; font-size: 0.58rem;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    color: rgba(0,0,0,0.38);
+  }
+  .rr-summary__line-val {
+    font-family: "PT Mono", monospace; font-size: 0.78rem; font-weight: 700;
+  }
+  .rr-summary__divider { height: 1px; background: rgba(0,0,0,0.08); margin: 0.75rem 0; }
+  .rr-summary__total {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 1.25rem;
+  }
+  .rr-summary__total-lbl { font-weight: 800; font-size: 1rem; letter-spacing: -0.02em; }
+  .rr-summary__total-val { font-family: "PT Mono", monospace; font-weight: 700; font-size: 1.15rem; }
+
+  /* ── BUTTONS ─────────────────────── */
+  .rr-btn {
+    display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+    font-family: "PT Mono", monospace; font-size: 0.65rem;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    padding: 0.9rem; border: 1px solid; cursor: pointer;
+    font-weight: 700; width: 100%; margin-bottom: 0.5rem;
+    transition: opacity 0.2s, background 0.2s, border-color 0.2s;
+    text-decoration: none !important;
+  }
+  .rr-btn--dark    { background: #0d0d0d; color: #fff; border-color: #0d0d0d; }
+  .rr-btn--dark:hover    { opacity: 0.82; }
+  .rr-btn--outline { background: #fff; color: #0d0d0d; border-color: rgba(0,0,0,0.2); }
+  .rr-btn--outline:hover { border-color: #0d0d0d; }
+  .rr-btn--wa      { background: #25d366; color: #fff; border-color: #25d366; }
+  .rr-btn--wa:hover { opacity: 0.9; }
+  .rr-btn[disabled] { opacity: 0.35; pointer-events: none; cursor: not-allowed; }
+  .rr-summary__note {
+    font-family: "PT Mono", monospace; font-size: 0.5rem; letter-spacing: 0.04em;
+    text-align: center; color: rgba(0,0,0,0.25); text-transform: uppercase;
+    margin-top: 0.4rem; line-height: 1.7;
+  }
+
+  /* ── BACK ────────────────────────── */
+  .rr-back {
+    display: inline-flex; align-items: center; gap: 0.4rem;
+    font-family: "PT Mono", monospace; font-size: 0.58rem;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    color: rgba(0,0,0,0.38); background: none; border: none;
+    cursor: pointer; padding: 0; margin-bottom: 1.5rem;
+    transition: color 0.2s;
+  }
+  .rr-back:hover { color: #0d0d0d; }
+
+  /* ── FORM ────────────────────────── */
+  .rr-form-section { padding: 1.25rem 0; border-bottom: 1px solid rgba(0,0,0,0.08); }
+  .rr-form-section:last-child { border-bottom: none; }
+  .rr-section-title {
+    font-family: "PT Mono", monospace; font-size: 0.55rem;
+    letter-spacing: 0.18em; text-transform: uppercase;
+    color: rgba(0,0,0,0.32); margin-bottom: 1rem;
+  }
+  .rr-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem; }
+  .rr-form-row--full { grid-template-columns: 1fr; }
+  @media (max-width: 480px) { .rr-form-row { grid-template-columns: 1fr; } }
+  .rr-field { display: flex; flex-direction: column; gap: 0.3rem; }
+  .rr-field label {
+    font-family: "PT Mono", monospace; font-size: 0.54rem;
+    letter-spacing: 0.1em; text-transform: uppercase; color: rgba(0,0,0,0.42);
+  }
+  .rr-field input, .rr-field textarea {
+    font-family: "Noto Sans", sans-serif; font-size: 0.88rem; color: #0d0d0d;
+    background: #fff; border: 1px solid rgba(0,0,0,0.15); padding: 0.6rem 0.8rem;
+    width: 100%; transition: border-color 0.2s;
+  }
+  .rr-field input:focus, .rr-field textarea:focus { border-color: #0d0d0d; }
+  .rr-field input.err { border-color: #e63946; }
+  .rr-field .err-msg { font-family: "PT Mono", monospace; font-size: 0.5rem; color: #e63946; display: none; }
+  .rr-field input.err ~ .err-msg { display: block; }
+  .rr-ship-notice {
+    background: #f5f5f3; border-left: 2px solid #0d0d0d;
+    padding: 0.85rem 1rem; margin-top: 1rem;
+  }
+  .rr-ship-notice p { font-family: "PT Mono", monospace; font-size: 0.58rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 700; margin-bottom: 0.5rem; }
+  .rr-ship-notice li { font-family: "PT Mono", monospace; font-size: 0.56rem; color: rgba(0,0,0,0.52); display: flex; gap: 0.4rem; margin-bottom: 0.2rem; }
+
+  /* ── CONFIRM DIALOG ──────────────── */
+  .rr-dialog-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.5); z-index: 2000;
+    align-items: center; justify-content: center;
+  }
+  .rr-dialog-overlay.open { display: flex; }
+  .rr-dialog {
+    background: #fff; padding: 2rem; max-width: 360px; width: 90%;
+    border-top: 3px solid #e63946;
+  }
+  .rr-dialog__title { font-weight: 800; font-size: 1rem; letter-spacing: -0.02em; margin-bottom: 0.5rem; }
+  .rr-dialog__sub { font-family: "PT Mono", monospace; font-size: 0.62rem; letter-spacing: 0.06em; color: rgba(0,0,0,0.45); margin-bottom: 1.5rem; line-height: 1.6; }
+  .rr-dialog__btns { display: flex; gap: 0.5rem; }
+
+  /* ── SUCCESS ─────────────────────── */
+  .rr-success { text-align: center; padding: 4rem 1rem; }
+  .rr-success__check {
+    width: 60px; height: 60px; border-radius: 50%; background: #dcfce7;
+    display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem;
+  }
+  .rr-success__title { font-weight: 800; font-size: 1.4rem; letter-spacing: -0.02em; margin-bottom: 0.5rem; }
+  .rr-success__sub {
+    font-family: "PT Mono", monospace; font-size: 0.6rem; letter-spacing: 0.08em;
+    text-transform: uppercase; color: rgba(0,0,0,0.35); line-height: 2;
+    margin-bottom: 2rem; max-width: 300px; margin-left: auto; margin-right: auto;
+  }
+
+  /* ── TOAST ───────────────────────── */
+  .rr-toast {
+    position: fixed; bottom: 2rem; left: 50%;
+    transform: translateX(-50%) translateY(60px);
+    background: #0d0d0d; color: #fff;
+    font-family: "PT Mono", monospace; font-size: 0.65rem;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    padding: 0.8rem 1.5rem; z-index: 3000;
+    opacity: 0; transition: transform 0.3s ease, opacity 0.3s ease;
+    pointer-events: none; white-space: nowrap;
+  }
+  .rr-toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+</style>
+
+<div class="rr-cart">
+
+  <Navbar client:load />
+
+  <!-- HERO BANNER — fondo negro para que el navbar sea visible -->
+  <div class="rr-cart-hero">
+    <div class="container">
+      <h1 class="rr-cart-hero__title">Mi Carrito</h1>
+      <p class="rr-cart-hero__sub" id="cart-count-label">0 artículos</p>
     </div>
-  </main>
+  </div>
 
+  <!-- STEPS -->
+  <div style="background:#fff; border-bottom:1px solid rgba(0,0,0,0.08);">
+    <div class="container">
+      <div class="rr-steps">
+        <div class="rr-step active" id="si1">
+          <span class="rr-step__num" id="sn1">1</span>Carrito
+        </div>
+        <div class="rr-step__sep"></div>
+        <div class="rr-step" id="si2">
+          <span class="rr-step__num" id="sn2">2</span>Datos de envío
+        </div>
+        <div class="rr-step__sep"></div>
+        <div class="rr-step" id="si3">
+          <span class="rr-step__num" id="sn3">3</span>Confirmar
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="rr-main">
+    <div class="container">
+      <div class="rr-layout">
+
+        <!-- LEFT -->
+        <div>
+
+          <!-- PASO 1: ITEMS -->
+          <div id="step-cart">
+            <div class="rr-panel">
+              <p class="rr-panel__title">Productos en tu carrito</p>
+              <!-- Table header -->
+              <div class="rr-table-head">
+                <span></span>
+                <span>Producto</span>
+                <span style="text-align:center;">Cantidad</span>
+                <span class="rr-th-price" style="text-align:right;">Precio</span>
+              </div>
+              <div id="items-container"></div>
+            </div>
+          </div>
+
+          <!-- PASO 2: FORM -->
+          <div id="step-form" style="display:none;">
+            <div class="rr-panel">
+              <button class="rr-back" id="btn-back" type="button">← Volver al carrito</button>
+
+              <div class="rr-form-section">
+                <p class="rr-section-title">Datos personales</p>
+                <div class="rr-form-row">
+                  <div class="rr-field">
+                    <label for="f-name">Nombre completo <span style="color:#e63946;">*</span></label>
+                    <input id="f-name" type="text" placeholder="Tu nombre completo" autocomplete="name"/>
+                    <span class="err-msg" data-for="f-name">Requerido</span>
+                  </div>
+                  <div class="rr-field">
+                    <label for="f-phone">Teléfono <span style="color:#e63946;">*</span></label>
+                    <input id="f-phone" type="tel" placeholder="55 1234 5678" autocomplete="tel"/>
+                    <span class="err-msg" data-for="f-phone">Requerido</span>
+                  </div>
+                </div>
+                <div class="rr-form-row rr-form-row--full">
+                  <div class="rr-field">
+                    <label for="f-email">Correo <span style="font-size:0.48rem;color:rgba(0,0,0,0.3);">(opcional)</span></label>
+                    <input id="f-email" type="email" placeholder="tu@correo.com" autocomplete="email"/>
+                  </div>
+                </div>
+              </div>
+
+              <div class="rr-form-section">
+                <p class="rr-section-title">Dirección de entrega</p>
+                <div class="rr-form-row rr-form-row--full">
+                  <div class="rr-field">
+                    <label for="f-address">Calle y número <span style="color:#e63946;">*</span></label>
+                    <input id="f-address" type="text" placeholder="Calle Ejemplo #42, Col. Centro" autocomplete="street-address"/>
+                    <span class="err-msg" data-for="f-address">Requerido</span>
+                  </div>
+                </div>
+                <div class="rr-form-row">
+                  <div class="rr-field">
+                    <label for="f-city">Ciudad / Municipio <span style="color:#e63946;">*</span></label>
+                    <input id="f-city" type="text" placeholder="Ciudad de México" autocomplete="address-level2"/>
+                    <span class="err-msg" data-for="f-city">Requerido</span>
+                  </div>
+                  <div class="rr-field">
+                    <label for="f-state">Estado <span style="color:#e63946;">*</span></label>
+                    <input id="f-state" type="text" placeholder="CDMX" autocomplete="address-level1"/>
+                    <span class="err-msg" data-for="f-state">Requerido</span>
+                  </div>
+                </div>
+                <div class="rr-form-row">
+                  <div class="rr-field">
+                    <label for="f-cp">Código Postal <span style="color:#e63946;">*</span></label>
+                    <input id="f-cp" type="text" placeholder="06600" maxlength="5" autocomplete="postal-code"/>
+                    <span class="err-msg" data-for="f-cp">Requerido</span>
+                  </div>
+                  <div class="rr-field">
+                    <label for="f-refs">Referencias</label>
+                    <input id="f-refs" type="text" placeholder="Entre calles, color de fachada..."/>
+                  </div>
+                </div>
+                <div class="rr-ship-notice">
+                  <p>Información de envío</p>
+                  <ul>
+                    <li><span>—</span>Enviamos a toda la República Mexicana</li>
+                    <li><span>—</span>No realizamos envíos internacionales</li>
+                    <li><span>—</span>Tiempo estimado: 3 a 7 días hábiles</li>
+                    <li><span>—</span>Costo de envío: $150 MXN</li>
+                    <li><span>—</span>Envío GRATIS en pedidos mayores a $800 MXN</li>
+                    <li><span>—</span>Confirmamos tu pedido antes de cualquier cobro</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div class="rr-form-section">
+                <p class="rr-section-title">Notas adicionales</p>
+                <div class="rr-field">
+                  <label for="f-notes">Instrucción especial</label>
+                  <textarea id="f-notes" rows="3" placeholder="Ej: Es un regalo, no incluir precio. Horario preferido..."></textarea>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- PASO 3: SUCCESS -->
+          <div id="step-success" style="display:none;">
+            <div class="rr-panel">
+              <div class="rr-success">
+                <div class="rr-success__check">
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"/>
+                  </svg>
+                </div>
+                <h2 class="rr-success__title">¡Pedido enviado!</h2>
+                <p class="rr-success__sub">
+                  Tu orden fue enviada por WhatsApp.<br/>
+                  Te confirmamos disponibilidad y envío en breve.<br/>
+                  ¡Gracias por tu compra en Retro Reeves!
+                </p>
+                <a href={`${base}/`} class="rr-btn rr-btn--dark" style="max-width:240px;margin:0 auto;">
+                  Seguir comprando
+                </a>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /LEFT -->
+
+        <!-- SIDEBAR -->
+        <div class="rr-sidebar">
+          <div class="rr-summary">
+            <p class="rr-summary__title">Resumen del pedido</p>
+
+            <div class="rr-summary__mini" id="summary-items"></div>
+
+            <div class="rr-summary__line">
+              <span class="rr-summary__line-lbl">Subtotal</span>
+              <span class="rr-summary__line-val" id="s-sub">$0 MXN</span>
+            </div>
+            <div class="rr-summary__line">
+              <span class="rr-summary__line-lbl">Envío</span>
+              <span class="rr-summary__line-val" id="s-ship">$150 MXN</span>
+            </div>
+            <div class="rr-summary__divider"></div>
+            <div class="rr-summary__total">
+              <span class="rr-summary__total-lbl">Total</span>
+              <span class="rr-summary__total-val" id="s-total">$150 MXN</span>
+            </div>
+
+            <div id="cta-1">
+              <button id="btn-to-form" type="button" class="rr-btn rr-btn--dark">
+                Continuar con el pedido
+              </button>
+              <a href={`${base}/`} class="rr-btn rr-btn--outline">
+                Seguir comprando
+              </a>
+            </div>
+
+            <div id="cta-2" style="display:none;">
+              <button id="btn-send-wa" type="button" class="rr-btn rr-btn--wa">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0;">
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                </svg>
+                Enviar pedido por WhatsApp
+              </button>
+              <p class="rr-summary__note">Confirmamos disponibilidad y<br/>método de pago antes de cobrar</p>
+            </div>
+
+          </div>
+        </div><!-- /SIDEBAR -->
+
+      </div>
+    </div>
+  </div><!-- /MAIN -->
+
+  <!-- CONFIRM DIALOG -->
+  <div class="rr-dialog-overlay" id="confirm-dialog">
+    <div class="rr-dialog">
+      <h3 class="rr-dialog__title">¿Eliminar producto?</h3>
+      <p class="rr-dialog__sub" id="confirm-dialog-name">¿Estás seguro de que quieres eliminar este artículo del carrito?</p>
+      <div class="rr-dialog__btns">
+        <button id="confirm-yes" type="button" class="rr-btn rr-btn--dark" style="margin-bottom:0;">
+          Sí, eliminar
+        </button>
+        <button id="confirm-no" type="button" class="rr-btn rr-btn--outline" style="margin-bottom:0;">
+          Cancelar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div class="rr-toast" id="rr-toast"></div>
+
+  <Footer />
+</div>
+
+<script define:vars={{ base }}>
+  const SHIP = 150
+  let cart = JSON.parse(localStorage.getItem('cart') || '[]')
+  let pendingDeleteIdx = null
+
+  const fmt = n => '$' + Number(n).toLocaleString('es-MX') + ' MXN'
+  const sub = () => cart.reduce((s,i) => s + i.price*(i.qty||1), 0)
+  const tot = s => s >= 800 ? s : s + SHIP
+
+  // ── TOAST ────────────────────────────────────────
+  function toast(msg) {
+    const el = document.getElementById('rr-toast')
+    el.textContent = msg
+    el.classList.add('show')
+    setTimeout(() => el.classList.remove('show'), 2500)
+  }
+
+  // ── CONFIRM DIALOG ────────────────────────────────
+  function openConfirm(idx) {
+    pendingDeleteIdx = idx
+    const name = cart[idx]?.name ?? 'este artículo'
+    document.getElementById('confirm-dialog-name').textContent =
+      `¿Eliminar "${name}" del carrito?`
+    document.getElementById('confirm-dialog').classList.add('open')
+  }
+  document.getElementById('confirm-yes')?.addEventListener('click', () => {
+    if (pendingDeleteIdx !== null) {
+      const name = cart[pendingDeleteIdx]?.name
+      cart.splice(pendingDeleteIdx, 1)
+      pendingDeleteIdx = null
+      save(); renderCart(); updateSummary()
+      toast(name ? `"${name}" eliminado` : 'Artículo eliminado')
+    }
+    document.getElementById('confirm-dialog').classList.remove('open')
+  })
+  document.getElementById('confirm-no')?.addEventListener('click', () => {
+    pendingDeleteIdx = null
+    document.getElementById('confirm-dialog').classList.remove('open')
+  })
+  document.getElementById('confirm-dialog')?.addEventListener('click', e => {
+    if (e.target === e.currentTarget) {
+      pendingDeleteIdx = null
+      e.currentTarget.classList.remove('open')
+    }
+  })
+
+  // ── SUMMARY ──────────────────────────────────────
+  function updateSummary() {
+    const s = sub(), t = tot(s), free = s >= 800
+    document.getElementById('s-sub').textContent   = fmt(s)
+    document.getElementById('s-ship').innerHTML    = free
+      ? '<span style="color:#16a34a;font-family:\'PT Mono\',monospace;font-weight:700;">GRATIS</span>'
+      : fmt(SHIP)
+    document.getElementById('s-total').textContent = fmt(t)
+  }
+
+  function renderSummaryItems() {
+    const el = document.getElementById('summary-items')
+    el.style.display = cart.length ? 'flex' : 'none'
+    el.innerHTML = cart.map(item => `
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:0.5rem;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:600;font-size:0.8rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${item.name}</div>
+          <div style="font-family:'PT Mono',monospace;font-size:0.54rem;color:rgba(0,0,0,0.38);margin-top:2px;">
+            ${[item.size&&'T: '+item.size, item.color&&'C: '+item.color, 'x'+(item.qty||1)].filter(Boolean).join(' · ')}
+          </div>
+        </div>
+        <div style="font-family:'PT Mono',monospace;font-size:0.8rem;font-weight:700;white-space:nowrap;flex-shrink:0;">${fmt(item.price*(item.qty||1))}</div>
+      </div>`).join('')
+  }
+
+  // ── RENDER ITEMS ──────────────────────────────────
+  function renderCart() {
+    const c   = document.getElementById('items-container')
+    const lbl = document.getElementById('cart-count-label')
+    const btn = document.getElementById('btn-to-form')
+    const n   = cart.reduce((s,i) => s+(i.qty||1), 0)
+
+    if (lbl) lbl.textContent = n + ' artículo' + (n!==1?'s':'')
+    if (btn) {
+      btn.disabled = cart.length === 0
+    }
+
+    if (!cart.length) {
+      c.innerHTML = `
+        <div class="rr-empty">
+          <div class="rr-empty__icon">◻</div>
+          <h2 class="rr-empty__title">Tu carrito está vacío</h2>
+          <p class="rr-empty__sub">Agrega productos desde el catálogo</p>
+          <a href="${base}/" class="rr-btn rr-btn--dark" style="max-width:200px;margin:0 auto;">Explorar productos</a>
+        </div>`
+      updateSummary(); return
+    }
+
+    c.innerHTML = cart.map((item, idx) => `
+      <div class="rr-item">
+        <div class="rr-item__img">
+          <img src="${base}/${item.image||'images/product1.jpg'}" alt="${item.name}" loading="lazy"
+            style="width:64px !important;height:80px !important;max-width:64px !important;object-fit:cover !important;display:block !important;"/>
+        </div>
+        <div style="min-width:0;overflow:hidden;">
+          <div class="rr-item__name">${item.name}</div>
+          <div class="rr-item__meta">${[item.size&&'Talla: '+item.size, item.color&&'Color: '+item.color].filter(Boolean).join(' · ')}</div>
+          <button class="rr-item__remove" data-a="del" data-i="${idx}" type="button">Eliminar</button>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:center;">
+          <div class="rr-qty">
+            <button class="rr-qty__btn" data-a="dec" data-i="${idx}" type="button">&#8722;</button>
+            <span class="rr-qty__num">${item.qty||1}</span>
+            <button class="rr-qty__btn" data-a="inc" data-i="${idx}" type="button">&#43;</button>
+          </div>
+        </div>
+        <div class="rr-item-price">${fmt(item.price*(item.qty||1))}</div>
+      </div>`).join('')
+
+    c.querySelectorAll('[data-a]').forEach(btn => btn.addEventListener('click', () => {
+      const i = parseInt(btn.dataset.i), a = btn.dataset.a
+      if (a === 'inc') {
+        cart[i].qty = (cart[i].qty||1) + 1
+        save(); renderCart(); updateSummary()
+      }
+      if (a === 'dec') {
+        if ((cart[i].qty||1) <= 1) {
+          // Pide confirmación antes de eliminar
+          openConfirm(i)
+        } else {
+          cart[i].qty = (cart[i].qty||1) - 1
+          save(); renderCart(); updateSummary()
+        }
+      }
+      if (a === 'del') {
+        openConfirm(i)
+      }
+    }))
+
+    updateSummary()
+  }
+
+  // ── STEPS ─────────────────────────────────────────
+  function goTo(n) {
+    document.getElementById('step-cart').style.display    = n===1?'block':'none'
+    document.getElementById('step-form').style.display    = n===2?'block':'none'
+    document.getElementById('step-success').style.display = n===3?'block':'none'
+    document.getElementById('cta-1').style.display        = n===1?'block':'none'
+    document.getElementById('cta-2').style.display        = n===2?'block':'none'
+    document.getElementById('summary-items').style.display= n===2?'flex':'none'
+
+    ;[1,2,3].forEach(i => {
+      const si = document.getElementById('si'+i)
+      const sn = document.getElementById('sn'+i)
+      si.classList.remove('active','done')
+      if      (i < n)  { si.classList.add('done');   sn.textContent = '✓' }
+      else if (i === n){ si.classList.add('active'); sn.textContent = String(i) }
+      else             { sn.textContent = String(i) }
+    })
+    window.scrollTo({top:0, behavior:'smooth'})
+  }
+
+  // ── VALIDACIÓN ─────────────────────────────────────
+  const REQ = ['f-name','f-phone','f-address','f-city','f-state','f-cp']
+  function validate() {
+    let ok = true
+    REQ.forEach(id => {
+      const el  = document.getElementById(id)
+      const err = document.querySelector(`.err-msg[data-for="${id}"]`)
+      const empty = !el?.value.trim()
+      if (el)  el.classList.toggle('err', empty)
+      if (err) err.style.display = empty ? 'block' : 'none'
+      if (empty) ok = false
+    })
+    return ok
+  }
+  REQ.forEach(id => {
+    document.getElementById(id)?.addEventListener('input', function() {
+      this.classList.toggle('err', !this.value.trim())
+      const err = document.querySelector(`.err-msg[data-for="${id}"]`)
+      if (err) err.style.display = this.value.trim() ? 'none' : 'block'
+    })
+  })
+
+  // ── WHATSAPP ───────────────────────────────────────
+  function buildWA() {
+    const g = id => document.getElementById(id)?.value?.trim()??''
+    const s = sub(), free = s>=800, t = tot(s)
+    const lines = [
+      'NUEVO PEDIDO - RETRO REEVES','',
+      'DATOS DEL CLIENTE',
+      'Nombre: '+g('f-name'),
+      'Telefono: '+g('f-phone'),
+      g('f-email')?'Correo: '+g('f-email'):null,'',
+      'DIRECCION DE ENTREGA',
+      'Calle: '+g('f-address'),
+      'Ciudad: '+g('f-city')+', '+g('f-state'),
+      'C.P.: '+g('f-cp'),
+      g('f-refs')?'Referencias: '+g('f-refs'):null,'',
+      'ARTICULOS',
+      ...cart.map(i=>'- '+i.name+(i.size?' | Talla: '+i.size:'')+(i.color?' | Color: '+i.color:'')+' | Cantidad: '+(i.qty||1)+' | Precio: $'+(i.price*(i.qty||1)).toLocaleString('es-MX')+' MXN'),'',
+      'RESUMEN',
+      'Subtotal: $'+s.toLocaleString('es-MX')+' MXN',
+      'Envio: '+(free?'GRATIS':'$150 MXN'),
+      'Total: $'+t.toLocaleString('es-MX')+' MXN',
+      g('f-notes')?'\nNotas: '+g('f-notes'):null,'',
+      'Por favor confirmar disponibilidad y metodo de pago.',
+    ].filter(l=>l!==null).join('\n')
+    return 'https://wa.me/5217773019146?text='+encodeURIComponent(lines)
+  }
+
+  function save() {
+    localStorage.setItem('cart', JSON.stringify(cart))
+    window.dispatchEvent(new Event('cartUpdated'))
+  }
+
+  // ── EVENTOS ────────────────────────────────────────
+  document.getElementById('btn-to-form')?.addEventListener('click', () => {
+    if (!cart.length) return
+    renderSummaryItems(); goTo(2)
+  })
+  document.getElementById('btn-back')?.addEventListener('click', () => goTo(1))
+  document.getElementById('btn-send-wa')?.addEventListener('click', () => {
+    if (!validate()) {
+      document.querySelector('.err')?.scrollIntoView({behavior:'smooth', block:'center'})
+      return
+    }
+    window.open(buildWA(), '_blank')
+    cart = []; save(); goTo(3)
+    document.getElementById('cta-2').style.display = 'none'
+  })
+
+  renderCart()
+</script>
 </Layout>
+

@@ -1,33 +1,765 @@
 ---
 import Layout from "../../layouts/Layout.astro"
+import Navbar from "../../components/navbar"
+import Footer from "../../components/footer"
 import { getProducts, getProductBySlug } from "../../lib/products"
 
+const base = import.meta.env.BASE_URL.replace(/\/$/, "")
+
 export async function getStaticPaths() {
-  const products = getProducts()
-  return products.map((product) => ({
-    params: { slug: product.slug }
-  }))
+  return getProducts().map(p => ({ params: { slug: p.slug } }))
 }
 
-const { slug } = Astro.params
-const product = getProductBySlug(slug)
+const { slug }   = Astro.params
+const product    = getProductBySlug(slug)
+const allProducts = getProducts()
+
+// Relacionados: misma categoría, excluyendo el actual
+const related = allProducts
+  .filter(p => p.slug !== slug && p.category === product?.category)
+  .slice(0, 4)
+
+// Si no hay de la misma cat, agarra otros
+const fallback = related.length
+  ? related
+  : allProducts.filter(p => p.slug !== slug).slice(0, 4)
 ---
 
-<Layout>
-  {product ? (
-    <div class="container py-5">
-      <h1>{product.name}</h1>
-      <p>${product.price}</p>
+<Layout title={product ? `${product.name} — Retro Reeves` : "Producto"}>
+<style>
+  :root {
+    --rr-ink:    #0d0d0d;
+    --rr-paper:  #ffffff;
+    --rr-muted:  #f5f5f3;
+    --rr-border: rgba(0,0,0,0.10);
+    --rr-mono:   "PT Mono", monospace;
+    --rr-sans:   "Noto Sans", sans-serif;
+  }
 
-      <div class="row">
-        {product.images.map((img) => (
-          <img src={img} class="col-md-6 mb-3" />
-        ))}
+  /* ── BREADCRUMB ───────────────────────────────────── */
+  .rr-breadcrumb {
+    padding: 1.25rem 0 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--rr-mono);
+    font-size: 0.6rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(0,0,0,0.35);
+  }
+  .rr-breadcrumb a {
+    color: inherit;
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  .rr-breadcrumb a:hover { color: var(--rr-ink); }
+  .rr-breadcrumb__sep { opacity: 0.4; }
+
+  /* ── PRODUCT LAYOUT ───────────────────────────────── */
+  .rr-product {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3rem;
+    padding: 2rem 0 5rem;
+    align-items: start;
+  }
+  @media (max-width: 768px) {
+    .rr-product { grid-template-columns: 1fr; gap: 2rem; }
+  }
+
+  /* ── GALERÍA ──────────────────────────────────────── */
+  .rr-gallery { position: sticky; top: 80px; }
+
+  .rr-gallery__main {
+    aspect-ratio: 3/4;
+    overflow: hidden;
+    background: var(--rr-muted);
+    margin-bottom: 0.75rem;
+    cursor: zoom-in;
+    position: relative;
+  }
+  .rr-gallery__main-img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.4s ease, opacity 0.3s ease;
+  }
+  .rr-gallery__main:hover .rr-gallery__main-img { transform: scale(1.04); }
+
+  /* Badge limited sobre galería */
+  .rr-gallery__badge {
+    position: absolute;
+    top: 1rem; left: 1rem;
+    font-family: var(--rr-mono);
+    font-size: 0.58rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    background: var(--rr-ink);
+    color: #fff;
+    padding: 0.25rem 0.65rem;
+    z-index: 1;
+  }
+
+  .rr-gallery__thumbs {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+  .rr-gallery__thumb {
+    width: 72px;
+    aspect-ratio: 1;
+    overflow: hidden;
+    background: var(--rr-muted);
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: border-color 0.2s;
+    flex-shrink: 0;
+  }
+  .rr-gallery__thumb.active { border-color: var(--rr-ink); }
+  .rr-gallery__thumb img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.3s;
+  }
+  .rr-gallery__thumb:hover img { transform: scale(1.06); }
+
+  /* ── INFO PANEL ───────────────────────────────────── */
+  .rr-info { padding-top: 0.5rem; }
+
+  .rr-info__category {
+    font-family: var(--rr-mono);
+    font-size: 0.6rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(0,0,0,0.38);
+    margin-bottom: 0.6rem;
+    text-decoration: none;
+    display: inline-block;
+    transition: color 0.2s;
+  }
+  .rr-info__category:hover { color: var(--rr-ink); }
+
+  .rr-info__name {
+    font-family: var(--rr-sans);
+    font-weight: 800;
+    font-size: clamp(1.8rem, 4vw, 2.8rem);
+    letter-spacing: -0.03em;
+    line-height: 1;
+    margin-bottom: 1rem;
+  }
+
+  .rr-info__price-row {
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--rr-border);
+  }
+  .rr-info__price {
+    font-family: var(--rr-mono);
+    font-weight: 700;
+    font-size: 1.6rem;
+  }
+  .rr-info__price-note {
+    font-family: var(--rr-mono);
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(0,0,0,0.35);
+  }
+
+  /* Descripción */
+  .rr-info__desc {
+    font-family: var(--rr-sans);
+    font-size: 0.92rem;
+    line-height: 1.6;
+    color: rgba(0,0,0,0.6);
+    margin-bottom: 2rem;
+  }
+
+  /* ── SELECTOR BASE ────────────────────────────────── */
+  .rr-selector { margin-bottom: 1.5rem; }
+  .rr-selector__label {
+    font-family: var(--rr-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: rgba(0,0,0,0.5);
+    margin-bottom: 0.6rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .rr-selector__label-val {
+    color: var(--rr-ink);
+    font-weight: 700;
+  }
+
+  /* ── COLORES ──────────────────────────────────────── */
+  .rr-colors {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+  .rr-color-btn {
+    font-family: var(--rr-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.08em;
+    padding: 0.45rem 0.9rem;
+    border: 1px solid var(--rr-border);
+    background: none;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    color: var(--rr-ink);
+  }
+  .rr-color-btn:hover { border-color: var(--rr-ink); }
+  .rr-color-btn.active { border-color: var(--rr-ink); background: var(--rr-ink); color: #fff; }
+
+  /* ── TALLAS ───────────────────────────────────────── */
+  .rr-sizes {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+  .rr-size-btn {
+    font-family: var(--rr-mono);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    min-width: 48px;
+    height: 48px;
+    border: 1px solid var(--rr-border);
+    background: none;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s, color 0.2s;
+    color: var(--rr-ink);
+  }
+  .rr-size-btn:hover { border-color: var(--rr-ink); }
+  .rr-size-btn.active { border-color: var(--rr-ink); background: var(--rr-ink); color: #fff; }
+
+  /* ── CANTIDAD ─────────────────────────────────────── */
+  .rr-qty {
+    display: flex;
+    align-items: center;
+    border: 1px solid var(--rr-border);
+    width: fit-content;
+  }
+  .rr-qty__btn {
+    width: 44px; height: 44px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: var(--rr-mono);
+    font-size: 1rem;
+    color: var(--rr-ink);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s;
+  }
+  .rr-qty__btn:hover { background: var(--rr-muted); }
+  .rr-qty__num {
+    font-family: var(--rr-mono);
+    font-size: 0.85rem;
+    font-weight: 700;
+    min-width: 44px;
+    text-align: center;
+    border-left: 1px solid var(--rr-border);
+    border-right: 1px solid var(--rr-border);
+    padding: 0 0.5rem;
+    line-height: 44px;
+  }
+
+  /* ── CTA BUTTONS ──────────────────────────────────── */
+  .rr-cta {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    margin-top: 2rem;
+  }
+  @media (max-width: 480px) { .rr-cta { grid-template-columns: 1fr; } }
+
+  .rr-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-family: var(--rr-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 1rem;
+    border: 1px solid;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.2s, color 0.2s, border-color 0.2s;
+    font-weight: 700;
+  }
+  .rr-btn--dark {
+    background: var(--rr-ink);
+    color: #fff;
+    border-color: var(--rr-ink);
+  }
+  .rr-btn--dark:hover { background: #333; border-color: #333; }
+  .rr-btn--outline {
+    background: transparent;
+    color: var(--rr-ink);
+    border-color: var(--rr-border);
+  }
+  .rr-btn--outline:hover { border-color: var(--rr-ink); background: var(--rr-muted); }
+
+  /* Aviso de selección */
+  .rr-cta-note {
+    font-family: var(--rr-mono);
+    font-size: 0.58rem;
+    letter-spacing: 0.08em;
+    color: rgba(0,0,0,0.35);
+    text-align: center;
+    margin-top: 0.75rem;
+    text-transform: uppercase;
+  }
+
+  /* ── DETALLES ACORDEÓN ────────────────────────────── */
+  .rr-details {
+    margin-top: 2rem;
+    border-top: 1px solid var(--rr-border);
+  }
+  .rr-details__item {
+    border-bottom: 1px solid var(--rr-border);
+  }
+  .rr-details__trigger {
+    width: 100%;
+    background: none;
+    border: none;
+    padding: 1rem 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    font-family: var(--rr-mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--rr-ink);
+  }
+  .rr-details__icon {
+    font-size: 1rem;
+    transition: transform 0.3s;
+    line-height: 1;
+  }
+  .rr-details__item.open .rr-details__icon { transform: rotate(45deg); }
+  .rr-details__body {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.35s ease;
+  }
+  .rr-details__item.open .rr-details__body { max-height: 200px; }
+  .rr-details__content {
+    font-family: var(--rr-sans);
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: rgba(0,0,0,0.55);
+    padding-bottom: 1rem;
+  }
+
+  /* ── RELACIONADOS ─────────────────────────────────── */
+  .rr-related { padding: 4.5rem 0; background: var(--rr-muted); }
+  .rr-related__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    border-bottom: 1px solid var(--rr-border);
+    padding-bottom: 0.75rem;
+    margin-bottom: 2rem;
+  }
+  .rr-related__title {
+    font-family: var(--rr-sans);
+    font-weight: 800;
+    font-size: 1.5rem;
+    letter-spacing: -0.03em;
+  }
+
+  .rr-related-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+  }
+  @media (max-width: 900px) { .rr-related-grid { grid-template-columns: repeat(2,1fr); } }
+
+  .rr-rel-card {
+    text-decoration: none;
+    color: var(--rr-ink);
+    display: block;
+    background: var(--rr-paper);
+    border: 1px solid var(--rr-border);
+    transition: transform 0.3s cubic-bezier(.22,.68,0,1.2), border-color 0.2s;
+    overflow: hidden;
+  }
+  .rr-rel-card:hover { transform: translateY(-5px); border-color: var(--rr-ink); }
+  .rr-rel-card__img-wrap {
+    aspect-ratio: 3/4;
+    overflow: hidden;
+    background: var(--rr-muted);
+    position: relative;
+  }
+  .rr-rel-card__img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+    position: absolute; inset: 0;
+    transition: opacity 0.4s, transform 0.5s;
+  }
+  .rr-rel-card__img--p { opacity: 1; }
+  .rr-rel-card__img--s { opacity: 0; transform: scale(1.04); }
+  .rr-rel-card:hover .rr-rel-card__img--p { opacity: 0; }
+  .rr-rel-card:hover .rr-rel-card__img--s { opacity: 1; transform: scale(1); }
+  .rr-rel-card__info {
+    padding: 0.85rem;
+    border-top: 1px solid var(--rr-border);
+  }
+  .rr-rel-card__name {
+    font-family: var(--rr-sans);
+    font-weight: 700;
+    font-size: 0.85rem;
+    margin-bottom: 0.2rem;
+  }
+  .rr-rel-card__price {
+    font-family: var(--rr-mono);
+    font-size: 0.8rem;
+    font-weight: 700;
+  }
+
+  /* ── SCROLL REVEAL ────────────────────────────────── */
+  .rr-reveal {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+  .rr-reveal.visible { opacity: 1; transform: translateY(0); }
+  .rr-reveal-d1 { transition-delay: 0.08s; }
+  .rr-reveal-d2 { transition-delay: 0.16s; }
+  .rr-reveal-d3 { transition-delay: 0.24s; }
+  .rr-reveal-d4 { transition-delay: 0.32s; }
+
+  /* ── TOAST ────────────────────────────────────────── */
+  .rr-toast {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--rr-ink);
+    color: #fff;
+    font-family: var(--rr-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 0.85rem 1.75rem;
+    z-index: 2000;
+    transition: transform 0.35s cubic-bezier(.22,.68,0,1.2), opacity 0.3s;
+    opacity: 0;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  .rr-toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+</style>
+
+<main>
+  <Navbar client:load />
+
+  {product ? (
+    <div style="padding-top: 64px;">
+
+      {/* ── BREADCRUMB ── */}
+      <div class="container">
+        <nav class="rr-breadcrumb" aria-label="Breadcrumb">
+          <a href={`${base}/`}>Inicio</a>
+          <span class="rr-breadcrumb__sep">›</span>
+          <a href={`${base}/coleccion/${product.category}`}>{product.category}</a>
+          <span class="rr-breadcrumb__sep">›</span>
+          <span style="color:var(--rr-ink)">{product.name}</span>
+        </nav>
       </div>
 
-      <p>{product.description}</p>
+      {/* ── PRODUCTO ── */}
+      <div class="container">
+        <div class="rr-product">
+
+          {/* ── GALERÍA ── */}
+          <div class="rr-gallery rr-reveal">
+            <div class="rr-gallery__main" id="gallery-main">
+              {(product as any).limited && <span class="rr-gallery__badge">Limited</span>}
+              <img
+                id="gallery-main-img"
+                src={`${base}/${product.images[0]}`}
+                alt={product.name}
+                class="rr-gallery__main-img"
+                loading="eager"
+              />
+            </div>
+
+            {product.images.length > 1 && (
+              <div class="rr-gallery__thumbs">
+                {product.images.map((img, i) => (
+                  <div
+                    class={`rr-gallery__thumb${i === 0 ? ' active' : ''}`}
+                    data-src={`${base}/${img}`}
+                    data-index={i}
+                    role="button"
+                    tabindex="0"
+                    aria-label={`Imagen ${i + 1}`}
+                  >
+                    <img src={`${base}/${img}`} alt={`${product.name} vista ${i + 1}`} loading="lazy" />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* ── INFO ── */}
+          <div class="rr-info rr-reveal rr-reveal-d1">
+
+            <a href={`${base}/coleccion/${product.category}`} class="rr-info__category">
+              {product.category}
+            </a>
+
+            <h1 class="rr-info__name">{product.name}</h1>
+
+            <div class="rr-info__price-row">
+              <span class="rr-info__price">${product.price} MXN</span>
+              <span class="rr-info__price-note">IVA incluido · Envío calculado al checkout</span>
+            </div>
+
+            <p class="rr-info__desc">{product.description}</p>
+
+            {/* SELECTOR COLOR */}
+            {product.colors?.length > 0 && (
+              <div class="rr-selector">
+                <div class="rr-selector__label">
+                  Color
+                  <span class="rr-selector__label-val" id="selected-color">{product.colors[0]}</span>
+                </div>
+                <div class="rr-colors" id="color-options">
+                  {product.colors.map((color, i) => (
+                    <button
+                      class={`rr-color-btn${i === 0 ? ' active' : ''}`}
+                      data-color={color}
+                    >
+                      {color}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* SELECTOR TALLA */}
+            {product.sizes?.length > 0 && (
+              <div class="rr-selector">
+                <div class="rr-selector__label">
+                  Talla
+                  <span class="rr-selector__label-val" id="selected-size">—</span>
+                </div>
+                <div class="rr-sizes" id="size-options">
+                  {product.sizes.map(size => (
+                    <button class="rr-size-btn" data-size={size}>{size}</button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* CANTIDAD */}
+            <div class="rr-selector">
+              <div class="rr-selector__label">Cantidad</div>
+              <div class="rr-qty">
+                <button class="rr-qty__btn" id="qty-minus" aria-label="Reducir cantidad">−</button>
+                <span class="rr-qty__num" id="qty-num">1</span>
+                <button class="rr-qty__btn" id="qty-plus" aria-label="Aumentar cantidad">+</button>
+              </div>
+            </div>
+
+            {/* CTA BUTTONS */}
+            <div class="rr-cta">
+              <button class="rr-btn rr-btn--dark" id="btn-cart">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+                Agregar al carrito
+              </button>
+              <a class="rr-btn rr-btn--outline" id="btn-wa" href="#" target="_blank" rel="noopener noreferrer">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                Pedir por WhatsApp
+              </a>
+            </div>
+            <p class="rr-cta-note" id="cta-note">Selecciona talla y color para continuar</p>
+
+            {/* ACORDEÓN ── detalles */}
+            <div class="rr-details">
+              {[
+                { title: "Descripción",     body: product.description },
+                { title: "Tallas disponibles", body: `Disponible en: ${product.sizes.join(', ')}. Medidas exactas disponibles por WhatsApp.` },
+                { title: "Envío y entrega", body: "Envíos a todo México. Tiempo estimado 3-7 días hábiles. Envío gratis en pedidos mayores a $800 MXN." },
+                { title: "Política de cambios", body: "Cambios en los primeros 7 días con etiqueta. No aplica en prendas íntimas ni ediciones limitadas." },
+              ].map(item => (
+                <div class="rr-details__item">
+                  <button class="rr-details__trigger">
+                    {item.title}
+                    <span class="rr-details__icon">+</span>
+                  </button>
+                  <div class="rr-details__body">
+                    <p class="rr-details__content">{item.body}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── RELACIONADOS ── */}
+      <section class="rr-related rr-reveal">
+        <div class="container">
+          <div class="rr-related__header">
+            <h2 class="rr-related__title">También te puede gustar</h2>
+          </div>
+          <div class="rr-related-grid">
+            {fallback.map((p, i) => (
+              <a href={`${base}/product/${p.slug}`} class={`rr-rel-card rr-reveal rr-reveal-d${Math.min(i+1,4)}`}>
+                <div class="rr-rel-card__img-wrap">
+                  <img src={`${base}/${p.images[0]}`} alt={p.name} class="rr-rel-card__img rr-rel-card__img--p" loading="lazy" />
+                  {p.images[1] && <img src={`${base}/${p.images[1]}`} alt={p.name} class="rr-rel-card__img rr-rel-card__img--s" loading="lazy" />}
+                </div>
+                <div class="rr-rel-card__info">
+                  <div class="rr-rel-card__name">{p.name}</div>
+                  <div class="rr-rel-card__price">${p.price} MXN</div>
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+      </section>
+
     </div>
   ) : (
-    <p>Producto no encontrado</p>
+    <div style="padding: 8rem 2rem; text-align:center;">
+      <p style="font-family:'PT Mono',monospace;font-size:.8rem;letter-spacing:.1em;color:rgba(0,0,0,.35);">PRODUCTO NO ENCONTRADO</p>
+      <a href={`${base}/`} style="display:inline-block;margin-top:1rem;font-family:'PT Mono',monospace;font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:#0d0d0d;">← Volver al inicio</a>
+    </div>
   )}
+
+  <Footer />
+</main>
+
+{/* Toast */}
+<div class="rr-toast" id="rr-toast">✓ Agregado al carrito</div>
+
+<script define:vars={{
+  productName:   product?.name ?? '',
+  productPrice:  product?.price ?? 0,
+  productSlug:   product?.slug ?? '',
+  productImages: product?.images ?? [],
+  productSizes:  product?.sizes ?? [],
+  productColors: product?.colors ?? [],
+  base,
+}}>
+  // ── GALERÍA ──────────────────────────────────
+  const mainImg  = document.getElementById('gallery-main-img')
+  const thumbs   = document.querySelectorAll('.rr-gallery__thumb')
+  thumbs.forEach(thumb => {
+    const activate = () => {
+      thumbs.forEach(t => t.classList.remove('active'))
+      thumb.classList.add('active')
+      if (mainImg) {
+        mainImg.style.opacity = '0'
+        setTimeout(() => {
+          mainImg.src = thumb.dataset.src
+          mainImg.style.opacity = '1'
+        }, 200)
+      }
+    }
+    thumb.addEventListener('click', activate)
+    thumb.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') activate() })
+  })
+
+  // ── COLORES ───────────────────────────────────
+  let selectedColor = productColors[0] ?? ''
+  const colorBtns = document.querySelectorAll('.rr-color-btn')
+  const colorLabel = document.getElementById('selected-color')
+  colorBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      colorBtns.forEach(b => b.classList.remove('active'))
+      btn.classList.add('active')
+      selectedColor = btn.dataset.color ?? ''
+      if (colorLabel) colorLabel.textContent = selectedColor
+      updateWALink()
+    })
+  })
+
+  // ── TALLAS ────────────────────────────────────
+  let selectedSize = ''
+  const sizeBtns  = document.querySelectorAll('.rr-size-btn')
+  const sizeLabel  = document.getElementById('selected-size')
+  const ctaNote    = document.getElementById('cta-note')
+  sizeBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      sizeBtns.forEach(b => b.classList.remove('active'))
+      btn.classList.add('active')
+      selectedSize = btn.dataset.size ?? ''
+      if (sizeLabel) sizeLabel.textContent = selectedSize
+      if (ctaNote && selectedSize) ctaNote.style.display = 'none'
+      updateWALink()
+    })
+  })
+
+  // ── CANTIDAD ──────────────────────────────────
+  let qty = 1
+  const qtyNum   = document.getElementById('qty-num')
+  const qtyMinus = document.getElementById('qty-minus')
+  const qtyPlus  = document.getElementById('qty-plus')
+  qtyMinus?.addEventListener('click', () => { if (qty > 1) { qty--; if (qtyNum) qtyNum.textContent = String(qty); updateWALink() } })
+  qtyPlus?.addEventListener('click',  () => { if (qty < 10) { qty++; if (qtyNum) qtyNum.textContent = String(qty); updateWALink() } })
+
+  // ── WHATSAPP LINK ─────────────────────────────
+  function updateWALink() {
+    const btnWa = document.getElementById('btn-wa')
+    if (!btnWa) return
+    const msg = encodeURIComponent(
+      `Hola Retro Reeves 🔥\n\nQuiero hacer este pedido:\n\n• ${productName}\nTalla: ${selectedSize || '(por definir)'}\nColor: ${selectedColor || '(por definir)'}\nCantidad: ${qty}\nPrecio: $${productPrice * qty} MXN\n\n¿Tienen disponibilidad?`
+    )
+    btnWa.href = `https://wa.me/5217773019146?text=${msg}`
+  }
+  updateWALink()
+
+  // ── CARRITO ───────────────────────────────────
+  const btnCart = document.getElementById('btn-cart')
+  const toast   = document.getElementById('rr-toast')
+  btnCart?.addEventListener('click', () => {
+    if (!selectedSize && productSizes.length > 0) {
+      if (ctaNote) { ctaNote.textContent = '⚠ Selecciona una talla antes de continuar'; ctaNote.style.color = '#e63946'; ctaNote.style.display = 'block' }
+      sizeBtns.forEach(b => { b.style.borderColor = '#e63946'; setTimeout(() => b.style.borderColor = '', 1200) })
+      return
+    }
+    const cart = JSON.parse(localStorage.getItem('cart') || '[]')
+    cart.push({ slug: productSlug, name: productName, price: productPrice, size: selectedSize, color: selectedColor, qty, image: productImages[0] })
+    localStorage.setItem('cart', JSON.stringify(cart))
+    window.dispatchEvent(new Event('cartUpdated'))
+    if (toast) { toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 2500) }
+  })
+
+  // ── ACORDEÓN ──────────────────────────────────
+  document.querySelectorAll('.rr-details__trigger').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const item = btn.closest('.rr-details__item')
+      const isOpen = item?.classList.contains('open')
+      document.querySelectorAll('.rr-details__item').forEach(i => i.classList.remove('open'))
+      if (!isOpen) item?.classList.add('open')
+    })
+  })
+
+  // ── SCROLL REVEAL ─────────────────────────────
+  const io = new IntersectionObserver(
+    entries => entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); io.unobserve(e.target) } }),
+    { threshold: 0.08 }
+  )
+  document.querySelectorAll('.rr-reveal').forEach(el => io.observe(el))
+</script>
 </Layout>
