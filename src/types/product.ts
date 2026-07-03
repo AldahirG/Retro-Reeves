@@ -7,6 +7,8 @@ export interface Product {
   drop?: boolean
   dropSlug?: string
   limited?: boolean
+  bestseller?: boolean
+  visible?: boolean
   sizes: string[]
   colors: string[]
   images: string[]

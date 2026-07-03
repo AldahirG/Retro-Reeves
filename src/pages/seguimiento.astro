@@ -1,0 +1,155 @@
+---
+import Layout from '../layouts/Layout.astro'
+import Navbar from '../components/navbar'
+import Footer from '../components/footer'
+
+const base = import.meta.env.BASE_URL.replace(/\/$/, '')
+const API  = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3000'
+---
+
+<Layout title="Seguimiento de pedido — Retro Reeves">
+<style>
+  :root { --rr-mono: 'PT Mono', monospace; --rr-sans: 'Noto Sans', sans-serif; }
+  body { background: #f5f4ef; }
+  .trk-hero { background: #0d0d0d; padding: 5.5rem 0 2.5rem; }
+  .trk-hero__title { font-family: var(--rr-sans); font-weight: 800; font-size: clamp(2rem,5vw,3rem); letter-spacing: -0.04em; color: #fff; margin: 0 0 0.3rem; }
+  .trk-hero__sub   { font-family: var(--rr-mono); font-size: 0.58rem; letter-spacing: 0.15em; text-transform: uppercase; color: rgba(255,255,255,0.35); margin: 0; }
+  .trk-main { padding: 2.5rem 0 5rem; }
+  .trk-card { background: #fff; max-width: 480px; margin: 0 auto; }
+  .trk-form { padding: 1.75rem; display: flex; flex-direction: column; gap: 1rem; }
+  .trk-label { display: block; font-family: var(--rr-mono); font-size: 0.5rem; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(0,0,0,0.38); margin-bottom: 0.3rem; }
+  .trk-input { width: 100%; border: 1px solid rgba(0,0,0,0.13); padding: 0.6rem 0.85rem; font-family: var(--rr-sans); font-size: 0.9rem; color: #0d0d0d; background: #fff; border-radius: 0; outline: none; box-sizing: border-box; transition: border-color 0.2s; }
+  .trk-input:focus { border-color: #0d0d0d; }
+  .trk-btn { background: #0d0d0d; color: #fff; border: none; padding: 0.85rem; font-family: var(--rr-mono); font-size: 0.62rem; letter-spacing: 0.14em; text-transform: uppercase; font-weight: 700; cursor: pointer; width: 100%; border-radius: 0; transition: opacity 0.18s; }
+  .trk-btn:hover { opacity: 0.82; }
+  .trk-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+  .trk-err  { font-family: var(--rr-mono); font-size: 0.54rem; color: #c8382a; text-align: center; display: none; }
+  /* resultado */
+  .trk-result { display: none; padding: 1.75rem; border-top: 1px solid rgba(0,0,0,0.07); }
+  .trk-order-num { font-family: var(--rr-mono); font-size: 0.55rem; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(0,0,0,0.35); margin: 0 0 0.2rem; }
+  .trk-order-name { font-family: var(--rr-sans); font-weight: 800; font-size: 1.1rem; letter-spacing: -0.02em; margin: 0 0 1.25rem; }
+  .trk-status-badge { display: inline-block; font-family: var(--rr-mono); font-size: 0.52rem; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 700; padding: 0.3rem 0.75rem; margin-bottom: 1.25rem; }
+  .trk-items-title { font-family: var(--rr-mono); font-size: 0.48rem; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(0,0,0,0.3); margin: 0 0 0.65rem; }
+  .trk-item { display: flex; justify-content: space-between; align-items: flex-start; padding: 0.55rem 0; border-bottom: 1px solid rgba(0,0,0,0.06); gap: 0.5rem; }
+  .trk-item:last-child { border-bottom: none; }
+  .trk-item-name { font-family: var(--rr-sans); font-weight: 600; font-size: 0.84rem; margin: 0 0 0.1rem; }
+  .trk-item-meta { font-family: var(--rr-mono); font-size: 0.48rem; color: rgba(0,0,0,0.38); letter-spacing: 0.06em; }
+  .trk-item-price { font-family: var(--rr-mono); font-size: 0.78rem; font-weight: 700; white-space: nowrap; }
+  .trk-totals { margin-top: 1rem; padding-top: 0.85rem; border-top: 2px solid #0d0d0d; }
+  .trk-total-row { display: flex; justify-content: space-between; font-family: var(--rr-mono); font-size: 0.58rem; letter-spacing: 0.06em; margin-bottom: 0.3rem; }
+  .trk-total-row.big { font-size: 0.9rem; font-weight: 700; margin-top: 0.3rem; }
+
+  .status-pending   { background: #fef9c3; color: #854d0e; }
+  .status-confirmed { background: #dbeafe; color: #1d4ed8; }
+  .status-preparing { background: #ede9fe; color: #6d28d9; }
+  .status-shipped   { background: #dbeafe; color: #1e40af; }
+  .status-delivered { background: #dcfce7; color: #166534; }
+  .status-cancelled { background: #fee2e2; color: #991b1b; }
+</style>
+
+<div>
+  <Navbar client:load />
+
+  <div class="trk-hero">
+    <div class="container">
+      <h1 class="trk-hero__title">Seguimiento de pedido</h1>
+      <p class="trk-hero__sub">Ingresa tu número de orden y teléfono</p>
+    </div>
+  </div>
+
+  <div class="trk-main">
+    <div class="container">
+      <div class="trk-card">
+        <div class="trk-form">
+          <div>
+            <label class="trk-label" for="t-order">Número de orden</label>
+            <input class="trk-input" id="t-order" type="text" placeholder="RR-2025-XXXXXX"/>
+          </div>
+          <div>
+            <label class="trk-label" for="t-phone">Teléfono con el que compraste</label>
+            <input class="trk-input" id="t-phone" type="tel" placeholder="55 1234 5678"/>
+          </div>
+          <p class="trk-err" id="trk-err">Pedido no encontrado o teléfono incorrecto</p>
+          <button class="trk-btn" id="trk-btn" type="button">Buscar pedido</button>
+        </div>
+
+        <div class="trk-result" id="trk-result">
+          <p class="trk-order-num" id="r-num"></p>
+          <p class="trk-order-name" id="r-name"></p>
+          <span class="trk-status-badge" id="r-status"></span>
+          <p class="trk-items-title">Artículos</p>
+          <div id="r-items"></div>
+          <div class="trk-totals">
+            <div class="trk-total-row"><span>Subtotal</span><span id="r-sub"></span></div>
+            <div class="trk-total-row"><span>Envío</span><span id="r-ship"></span></div>
+            <div class="trk-total-row big"><span>Total</span><span id="r-total"></span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <Footer />
+</div>
+
+<script define:vars={{ API }}>
+  const STATUS_LABELS = {
+    pending:   'Pendiente',
+    confirmed: 'Confirmado',
+    preparing: 'Preparando',
+    shipped:   'Enviado',
+    delivered: 'Entregado',
+    cancelled: 'Cancelado',
+    refunded:  'Reembolsado',
+  }
+  const fmx = n => '$' + Number(n).toLocaleString('es-MX') + ' MXN'
+
+  document.getElementById('trk-btn')?.addEventListener('click', async () => {
+    const orderNum = document.getElementById('t-order')?.value?.trim().toUpperCase()
+    const phone    = document.getElementById('t-phone')?.value?.trim()
+    const errEl    = document.getElementById('trk-err')
+    const result   = document.getElementById('trk-result')
+    const btn      = document.getElementById('trk-btn')
+    if (!orderNum || !phone) return
+    errEl.style.display = 'none'
+    result.style.display = 'none'
+    btn.disabled = true
+    btn.textContent = 'Buscando...'
+    try {
+      const res = await fetch(`${API}/api/v1/orders/track/${encodeURIComponent(orderNum)}?phone=${encodeURIComponent(phone)}`)
+      const data = await res.json()
+      if (!res.ok || data.error) {
+        errEl.style.display = 'block'
+        errEl.textContent = data.error ?? 'Pedido no encontrado'
+      } else {
+        document.getElementById('r-num').textContent    = '#' + data.orderNumber
+        document.getElementById('r-name').textContent   = data.guestName ?? 'Cliente'
+        const badge = document.getElementById('r-status')
+        badge.textContent  = STATUS_LABELS[data.status] ?? data.status
+        badge.className    = 'trk-status-badge status-' + data.status
+        document.getElementById('r-items').innerHTML = (data.items ?? []).map(it => `
+          <div class="trk-item">
+            <div>
+              <p class="trk-item-name">${it.productName}</p>
+              <span class="trk-item-meta">${[it.size && 'Talla: '+it.size, it.color && 'Color: '+it.color, 'x'+it.qty].filter(Boolean).join(' · ')}</span>
+            </div>
+            <span class="trk-item-price">${fmx(parseFloat(it.unitPrice) * it.qty)}</span>
+          </div>`).join('')
+        document.getElementById('r-sub').textContent   = fmx(data.subtotal)
+        document.getElementById('r-ship').textContent  = data.shippingCost == 0 ? 'GRATIS' : fmx(data.shippingCost)
+        document.getElementById('r-total').textContent = fmx(data.total)
+        result.style.display = 'block'
+      }
+    } catch {
+      errEl.style.display = 'block'
+      errEl.textContent = 'Error de conexión. Intenta de nuevo.'
+    } finally {
+      btn.disabled = false
+      btn.textContent = 'Buscar pedido'
+    }
+  })
+
+  document.getElementById('t-order')?.addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('trk-btn')?.click() })
+  document.getElementById('t-phone')?.addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('trk-btn')?.click() })
+</script>
+</Layout>

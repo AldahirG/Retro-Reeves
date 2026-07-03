@@ -1030,7 +1030,11 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
                 </div>
                 <h2 class="rr-success__title">¡Pedido enviado!</h2>
                 <p class="rr-success__sub">Tu orden fue enviada por WhatsApp.<br/>Te confirmamos disponibilidad y envío en breve.<br/>¡Gracias por tu compra en Retro Reeves!</p>
-                <a href={`${base}/`} class="rr-btn rr-btn--dk" style="max-width:220px;margin:0 auto;">Seguir comprando</a>
+                <p id="success-order-num" style="font-family:'PT Mono',monospace;font-size:0.56rem;letter-spacing:0.1em;text-transform:uppercase;color:rgba(0,0,0,0.35);margin:0 0 1.2rem;"></p>
+                <div style="display:flex;flex-direction:column;gap:0.5rem;max-width:220px;margin:0 auto;">
+                  <a href={`${base}/seguimiento`} class="rr-btn rr-btn--dk" style="margin:0;">Rastrear mi pedido</a>
+                  <a href={`${base}/`} class="rr-btn rr-btn--ol" style="margin:0;color:#0d0d0d;border-color:rgba(0,0,0,0.2);">Seguir comprando</a>
+                </div>
               </div>
             </div>
           </div>
@@ -1060,7 +1064,24 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
               <span class="rr-sum-lbl">Envío</span>
               <span class="rr-sum-val" id="s-ship">$150 MXN</span>
             </div>
+            <!-- CUPÓN -->
+            <div id="coupon-wrap" style="margin-bottom:0.75rem;">
+              <div style="display:flex;gap:0.4rem;">
+                <input id="coupon-input" type="text" placeholder="Código de descuento"
+                  style="flex:1;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:#fff;font-family:'PT Mono',monospace;font-size:0.68rem;letter-spacing:0.06em;padding:0.5rem 0.65rem;text-transform:uppercase;outline:none;border-radius:0;"/>
+                <button id="coupon-btn" type="button"
+                  style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.18);color:#fff;font-family:'PT Mono',monospace;font-size:0.58rem;letter-spacing:0.1em;text-transform:uppercase;padding:0.5rem 0.75rem;cursor:pointer;white-space:nowrap;border-radius:0;">
+                  Aplicar
+                </button>
+              </div>
+              <div id="coupon-msg" style="font-family:'PT Mono',monospace;font-size:0.52rem;letter-spacing:0.06em;margin-top:0.3rem;display:none;"></div>
+            </div>
+
             <div class="rr-sum-div"></div>
+            <div class="rr-sum-line" id="discount-line" style="display:none;">
+              <span class="rr-sum-lbl">Descuento</span>
+              <span class="rr-sum-val" id="s-discount" style="color:#4ade80;">-$0 MXN</span>
+            </div>
             <div class="rr-sum-total">
               <span class="rr-sum-total-lbl">Total</span>
               <span class="rr-sum-total-val" id="s-total">$150 MXN</span>
@@ -1103,7 +1124,9 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
   <Footer />
 </div>
 
-<script define:vars={{ base }}>
+<script type="module" define:vars={{ base }}>
+  import { createOrder } from '../lib/api.ts'
+  const API = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3000'
   const SHIP    = 150
   const FREE_AT = 1299
   let cart = JSON.parse(localStorage.getItem('cart') || '[]')
@@ -1200,7 +1223,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       const isDrop = !!(item.drop || item.dropSlug)
       const qty    = item.qty || 1
       const total  = item.price * qty
-      const imgSrc = item.image ? base + '/' + item.image : ''
+      const imgSrc = item.image ? (item.image.startsWith('http') ? item.image : base + '/' + item.image) : ''
       const meta   = [item.size ? 'Talla: ' + item.size : null, item.color ? 'Color: ' + item.color : null].filter(Boolean).join(' · ')
       return `
       <div class="rr-ticket${isDrop ? ' drop' : ''}" id="tk-${idx}">
@@ -1274,7 +1297,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     if (!cands.length) { wrap.style.display = 'none'; return }
     wrap.style.display = 'block'
     grid.innerHTML = cands.map(p => {
-      const img = p.images?.[0] ? base + '/' + p.images[0] : ''
+      const img = p.images?.[0] ? (p.images[0].startsWith('http') ? p.images[0] : base + '/' + p.images[0]) : ''
       return `
       <a href="${base}/product/${p.slug}" class="rr-sug-card">
         <div class="rr-sug-card__img">${img ? `<img src="${img}" alt="${p.name}" loading="lazy"/>` : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-family:'PT Mono',monospace;font-size:0.42rem;text-transform:uppercase;color:rgba(0,0,0,0.26);text-align:center;padding:.5rem;">${p.name}</div>`}</div>
@@ -1367,10 +1390,122 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 
   function save() { localStorage.setItem('cart', JSON.stringify(cart)); window.dispatchEvent(new Event('cartUpdated')) }
 
+  // ── CUPÓN ──────────────────────────────────────────────────
+  let appliedDiscount = null   // { id, code, type, value, savings }
+
+  function updateSummaryWithDiscount() {
+    const s = sub(), free = s >= FREE_AT
+    const savings = appliedDiscount ? parseFloat(appliedDiscount.savings) : 0
+    const discounted = Math.max(0, s - savings)
+    const ship = discounted >= FREE_AT || free ? 0 : SHIP
+    const t = discounted + ship
+
+    document.getElementById('s-sub').textContent   = fmx(s)
+    document.getElementById('s-total').textContent = fmx(t)
+    const dLine = document.getElementById('discount-line')
+    const dEl   = document.getElementById('s-discount')
+    if (savings > 0 && dLine && dEl) {
+      dLine.style.display = 'flex'
+      dEl.textContent = '-' + fmx(savings)
+    } else if (dLine) {
+      dLine.style.display = 'none'
+    }
+    const sEl = document.getElementById('s-ship'), mSh = document.getElementById('m-ship')
+    if (ship === 0) {
+      if (sEl) { sEl.textContent = 'GRATIS'; sEl.classList.add('free') }
+      if (mSh) { mSh.textContent = 'GRATIS'; mSh.classList.add('free') }
+    } else {
+      if (sEl) { sEl.textContent = fmx(ship); sEl.classList.remove('free') }
+      if (mSh) { mSh.textContent = '$' + ship; mSh.classList.remove('free') }
+    }
+  }
+
+  document.getElementById('coupon-btn')?.addEventListener('click', async () => {
+    const input = document.getElementById('coupon-input')
+    const msg   = document.getElementById('coupon-msg')
+    const code  = input?.value?.trim().toUpperCase()
+    if (!code) return
+    const btn = document.getElementById('coupon-btn')
+    btn.textContent = '...'
+    btn.disabled    = true
+    try {
+      const result = await fetch(`${API}/api/v1/discounts/validate`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, subtotal: sub() }),
+      }).then(r => r.json())
+      msg.style.display = 'block'
+      if (result.valid) {
+        appliedDiscount = { ...result.discount, savings: result.savings }
+        msg.style.color = '#4ade80'
+        msg.textContent = '✓ Cupón aplicado — ahorras $' + Number(result.savings).toLocaleString('es-MX') + ' MXN'
+        input.disabled  = true
+        btn.textContent = '✓'
+      } else {
+        appliedDiscount = null
+        msg.style.color = '#f87171'
+        msg.textContent = result.error ?? 'Cupón inválido'
+        btn.textContent = 'Aplicar'
+        btn.disabled    = false
+      }
+    } catch {
+      msg.style.display = 'block'
+      msg.style.color   = '#f87171'
+      msg.textContent   = 'Error al validar cupón'
+      btn.textContent   = 'Aplicar'
+      btn.disabled      = false
+    }
+    updateSummaryWithDiscount()
+  })
+
   document.getElementById('btn-to-form')?.addEventListener('click', () => { if (!cart.length) return; renderMiniItems(); goTo(2) })
   document.getElementById('btn-back')?.addEventListener('click', () => goTo(1))
-  document.getElementById('btn-send-wa')?.addEventListener('click', () => {
+  async function resolveOrderItems() {
+    const items = []
+    for (const item of cart) {
+      try {
+        const res = await fetch(`${API}/api/v1/products/${item.slug}`)
+        if (!res.ok) continue
+        const product = await res.json()
+        const variant = product.variants?.find(v => v.size === item.size && (item.color ? v.color === item.color : true))
+        if (!product?.id || !variant?.id) continue
+        items.push({
+          productId:   product.id,
+          variantId:   variant.id,
+          productName: item.name,
+          size:        item.size || '',
+          color:       item.color || undefined,
+          qty:         item.qty || 1,
+          unitPrice:   String(item.price),
+        })
+      } catch { /* API down — skip, WA still works */ }
+    }
+    return items
+  }
+
+  document.getElementById('btn-send-wa')?.addEventListener('click', async () => {
     if (!validate()) { document.querySelector('.err')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); return }
+    const g = id => document.getElementById(id)?.value?.trim() ?? ''
+    const items = await resolveOrderItems()
+    if (items.length > 0) {
+      try {
+        const orderRes = await createOrder({
+          guestName:  g('f-name'),
+          guestPhone: g('f-phone'),
+          guestEmail: g('f-email') || undefined,
+          shippingAddress: {
+            street: g('f-address'), city: g('f-city'), state: g('f-state'), zip: g('f-cp'), references: g('f-refs'),
+          },
+          items,
+          discountCode: appliedDiscount?.code || undefined,
+          notes: g('f-notes') || undefined,
+          channel: 'whatsapp',
+        })
+        if (orderRes?.orderNumber) {
+          const numEl = document.getElementById('success-order-num')
+          if (numEl) numEl.textContent = 'Tu número de orden: ' + orderRes.orderNumber
+        }
+      } catch { /* order registration best-effort — WA message is the source of truth */ }
+    }
     window.open(buildWA(), '_blank')
     cart = []; save(); goTo(3); document.getElementById('cta-2').style.display = 'none'
   })

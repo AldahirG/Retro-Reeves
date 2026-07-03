@@ -52,7 +52,7 @@ export default function CheckoutSummary({
             
             <PaymentDetails />
 
-            <ShippingInfo />
+            <ShippingInfo title={''} />
             
 
             <button className="btn btn-dark w-100 mt-4">Continue</button>        
@@ -70,7 +70,7 @@ export default function CheckoutSummary({
                   price={product.price}
                 />
             )}
-            <OrderSummary subtotal={subtotalCheckout}/>
+            <OrderSummary subtotal={subtotalCheckout} textColor={''}/>
           </div>
         </div>
       </section>

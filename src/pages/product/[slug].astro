@@ -6,14 +6,15 @@ import QuickviewModal from "../../components/products/QuickviewModal.astro"
 import { getProducts, getProductBySlug } from "../../lib/products"
 
 const base = import.meta.env.BASE_URL.replace(/\/$/, "")
+const url = (src: string) => src?.startsWith('http') ? src : `${base}/${src}`
 
 export async function getStaticPaths() {
-  return getProducts().map(p => ({ params: { slug: p.slug } }))
+  const products = await getProducts()
+  return products.map(p => ({ params: { slug: p.slug } }))
 }
-
 const { slug }   = Astro.params
-const product    = getProductBySlug(slug)
-const allProducts = getProducts()
+const product    = await getProductBySlug(slug)
+const allProducts = await getProducts()
 
 // Relacionados: misma categoría, excluyendo el actual
 const related = allProducts
@@ -494,7 +495,7 @@ const fallback = related.length
               {(product as any).limited && <span class="rr-gallery__badge">Limited</span>}
               <img
                 id="gallery-main-img"
-                src={`${base}/${product.images[0]}`}
+                src={url(product.images[0])}
                 alt={product.name}
                 class="rr-gallery__main-img"
                 loading="eager"
@@ -506,13 +507,13 @@ const fallback = related.length
                 {product.images.map((img, i) => (
                   <div
                     class={`rr-gallery__thumb${i === 0 ? ' active' : ''}`}
-                    data-src={`${base}/${img}`}
+                    data-src={url(img)}
                     data-index={i}
                     role="button"
                     tabindex="0"
                     aria-label={`Imagen ${i + 1}`}
                   >
-                    <img src={`${base}/${img}`} alt={`${product.name} vista ${i + 1}`} loading="lazy" />
+                    <img src={url(img)} alt={`${product.name} vista ${i + 1}`} loading="lazy" />
                   </div>
                 ))}
               </div>
@@ -626,8 +627,8 @@ const fallback = related.length
             {fallback.map((p, i) => (
               <div class={`rr-rel-card rr-reveal rr-reveal-d${Math.min(i+1,4)}`}>
                 <div class="rr-rel-card__img-wrap">
-                  <img src={`${base}/${p.images[0]}`} alt={p.name} class="rr-rel-card__img rr-rel-card__img--p" loading="lazy" />
-                  {p.images[1] && <img src={`${base}/${p.images[1]}`} alt={p.name} class="rr-rel-card__img rr-rel-card__img--s" loading="lazy" />}
+                  <img src={url(p.images[0])} alt={p.name} class="rr-rel-card__img rr-rel-card__img--p" loading="lazy" />
+                  {p.images[1] && <img src={url(p.images[1])} alt={p.name} class="rr-rel-card__img rr-rel-card__img--s" loading="lazy" />}
                   <button
                     class="rr-qv-trigger"
                     data-slug={p.slug}
@@ -676,6 +677,7 @@ const fallback = related.length
 <div class="rr-toast" id="rr-toast">✓ Agregado al carrito</div>
 
 <script define:vars={{
+  productId:     product?.id ?? '',
   productName:   product?.name ?? '',
   productPrice:  product?.price ?? 0,
   productSlug:   product?.slug ?? '',
@@ -762,7 +764,7 @@ const fallback = related.length
       return
     }
     const cart = JSON.parse(localStorage.getItem('cart') || '[]')
-    cart.push({ slug: productSlug, name: productName, price: productPrice, size: selectedSize, color: selectedColor, qty, image: productImages[0] })
+    cart.push({ productId, slug: productSlug, name: productName, price: productPrice, size: selectedSize, color: selectedColor, qty, image: productImages[0] })
     localStorage.setItem('cart', JSON.stringify(cart))
     window.dispatchEvent(new Event('cartUpdated'))
     if (toast) { toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 2500) }

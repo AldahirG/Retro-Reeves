@@ -7,16 +7,17 @@ import Footer from "../../components/footer"
 import QuickviewModal from "../../components/products/QuickviewModal.astro"
 
 export async function getStaticPaths() {
-  const drops = getDrops()
+  const drops = await getDrops()
   return drops.map((drop) => ({
     params: { slug: drop.slug }
   }))
 }
 
 const base = import.meta.env.BASE_URL.replace(/\/$/, "")
+const url = (src: string) => src?.startsWith('http') ? src : `${base}/${src}`
 const { slug } = Astro.params
-const drop = getDropBySlug(slug)
-const allProducts = getProducts()
+const drop = await getDropBySlug(slug)
+const allProducts = await getProducts()
 const products = allProducts.filter(
   p => p.category === slug || p.dropSlug === slug
 )
@@ -363,7 +364,7 @@ const products = allProducts.filter(
         {/* ── HERO ── */}
         <section
           class="drop-hero"
-          style={`--hero-img: url('${base}/${drop.heroImage}')`}
+          style={`--hero-img: url('${url(drop.heroImage)}')`}
         >
           <div class="drop-hero__bg"></div>
           <div class="drop-hero__noise"></div>
@@ -428,7 +429,7 @@ const products = allProducts.filter(
                   )}
                   <div class="drop-card__img-wrap">
                     <img
-                      src={`${base}/${product.images[0]}`}
+                      src={url(product.images[0])}
                       alt={product.name}
                       loading="lazy"
                     />

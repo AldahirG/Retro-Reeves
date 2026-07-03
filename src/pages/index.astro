@@ -8,32 +8,36 @@ import { getProducts } from '../lib/products';
 import { getDrops } from '../lib/drops';
 
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
-const products    = getProducts();
-const drops       = getDrops();
+const products    = await getProducts();
+const drops       = await getDrops();
 const heroDrop    = drops[0];
+
+// No prefijar URLs absolutas (Sanity CDN) con base
+const url = (src: string) => src?.startsWith('http') ? src : `${base}/${src}`;
 
 // Hero slides: heroImage del drop activo + imágenes del primer producto del drop
 const heroProducts = products.filter(p => (p as any).dropSlug === heroDrop?.slug);
 const heroSlides = [
   heroDrop?.heroImage,
   ...heroProducts.flatMap(p => p.images).slice(0, 3),
-].filter(Boolean).map(src => `${base}/${src}`);
+].filter(Boolean).map(src => url(src));
 
-const bestsellers = products.filter(p => (p as any).bestseller).slice(0, 4).length
-  ? products.filter(p => (p as any).bestseller).slice(0, 4)
-  : products.slice(0, 4);
+const hiddenCategories = ['gorras', 'zapatos'];
+const visibleProducts = products.filter(p => !hiddenCategories.includes(p.category));
+const bestsellers = visibleProducts.filter(p => (p as any).bestseller).slice(0, 4).length
+  ? visibleProducts.filter(p => (p as any).bestseller).slice(0, 4)
+  : visibleProducts.slice(0, 4);
 
-// Lookbook: primeras 5 imágenes de productos variados
-const lookbookImgs = products
-  .flatMap(p => p.images.map(img => ({ img: `${base}/${img}`, name: p.name, price: p.price, slug: p.slug })))
+// Lookbook: primeras 5 imágenes de productos visibles
+const lookbookImgs = visibleProducts
+  .flatMap(p => p.images.map(img => ({ img: url(img), name: p.name, price: p.price, slug: p.slug })))
   .slice(0, 5);
 
 const categories = [
   { label: 'Hoodies',     slug: 'hoodies',    icon: 'bi-box-seam'      },
   { label: 'Gym',         slug: 'gym',         icon: 'bi-lightning-fill'},
   { label: 'Manga Corta', slug: 'manga-corta', icon: 'bi-person'        },
-  { label: 'Gorras',      slug: 'gorras',      icon: 'bi-pentagon-fill' },
-  { label: 'Zapatos',     slug: 'zapatos',     icon: 'bi-dribbble'      },
+  { label: 'Anime',       slug: 'anime',       icon: 'bi-stars'         },
 ];
 ---
 
@@ -392,11 +396,11 @@ const categories = [
   /* ── CATEGORIES ─────────────────────────────────────── */
   .rr-categories {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 1rem;
     text-align: center;
   }
-  @media (max-width: 600px) { .rr-categories { grid-template-columns: repeat(3,1fr); } }
+  @media (max-width: 600px) { .rr-categories { grid-template-columns: repeat(2,1fr); } }
   .rr-cat {
     display: flex;
     flex-direction: column;
@@ -572,6 +576,35 @@ const categories = [
     padding: 0.2rem 0.55rem;
   }
 
+  /* ── QUICK VIEW BTN ────────────────────────────────────── */
+  .rr-qv-trigger {
+    position: absolute;
+    bottom: 0.75rem;
+    left: 50%;
+    transform: translateX(-50%) translateY(8px);
+    opacity: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-family: var(--rr-mono);
+    font-size: 0.6rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    background: rgba(255,255,255,0.92);
+    color: var(--rr-ink);
+    border: none;
+    padding: 0.55rem 1.1rem;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+    backdrop-filter: blur(4px);
+  }
+  .rr-product-card:hover .rr-qv-trigger {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  .rr-qv-trigger:hover { background: #fff; }
+
   /* ── WA BANNER ──────────────────────────────────────── */
   .rr-wa-banner {
     background: var(--rr-ink);
@@ -741,7 +774,7 @@ const categories = [
     <div class="rr-drops-grid">
       {drops.map((drop, i) => (
         <a href={`${base}/coleccion/${drop.slug}`} class={`rr-drop-card rr-reveal rr-reveal-delay-${Math.min(i+1,3)}`}>
-          <img src={`${base}/${drop.heroImage}`} alt={drop.name} class="rr-drop-card__img" loading={i===0?'eager':'lazy'} />
+          <img src={url(drop.heroImage)} alt={drop.name} class="rr-drop-card__img" loading={i===0?'eager':'lazy'} />
           <span class="rr-drop-card__badge">Drop</span>
           <div class="rr-drop-card__info">
             <div class="rr-drop-card__name">{drop.name}</div>
@@ -801,9 +834,9 @@ const categories = [
       {bestsellers.map((product, i) => (
         <div class={`rr-product-card rr-reveal rr-reveal-delay-${Math.min(i+1,3)}`}>
           <div class="rr-product-card__img-wrap">
-            <img src={`${base}/${product.images[0]}`} alt={product.name} class="rr-product-card__img rr-product-card__img--primary" loading="lazy" />
+            <img src={url(product.images[0])} alt={product.name} class="rr-product-card__img rr-product-card__img--primary" loading="lazy" />
             {product.images[1] && (
-              <img src={`${base}/${product.images[1]}`} alt={product.name} class="rr-product-card__img rr-product-card__img--secondary" loading="lazy" />
+              <img src={url(product.images[1])} alt={product.name} class="rr-product-card__img rr-product-card__img--secondary" loading="lazy" />
             )}
             <button
               class="rr-qv-trigger"
@@ -963,5 +996,12 @@ const categories = [
 
 <script define:vars={{ products, base }} is:inline>
   window.__RR_PRODUCTS__ = products;
+  try {
+    const lite = products.map(p => ({
+      slug: p.slug, name: p.name, price: p.price,
+      images: p.images?.map(img => img?.startsWith('http') ? img : base + '/' + img) ?? [],
+    }))
+    localStorage.setItem('rr-products', JSON.stringify(lite))
+  } catch {}
 </script>
 </Layout>
