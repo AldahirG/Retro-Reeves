@@ -3,7 +3,8 @@ import Layout from '../layouts/Layout.astro';
 import Navbar from '../components/navbar';
 import Footer from '../components/footer';
 
-const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const base   = import.meta.env.BASE_URL.replace(/\/$/, '');
+const apiUrl = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3000';
 ---
 
 <Layout title="Carrito — Retro Reeves">
@@ -1124,9 +1125,18 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
   <Footer />
 </div>
 
-<script type="module" define:vars={{ base }}>
-  import { createOrder } from '../lib/api.ts'
-  const API = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3000'
+<script define:vars={{ base, apiUrl }} is:inline>
+  const API = apiUrl || 'http://localhost:3000'
+
+  async function createOrder(payload) {
+    const res = await fetch(`${API}/api/v1/orders`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ ...payload, channel: payload.channel ?? 'whatsapp' }),
+    })
+    return res.json()
+  }
   const SHIP    = 150
   const FREE_AT = 1299
   let cart = JSON.parse(localStorage.getItem('cart') || '[]')
