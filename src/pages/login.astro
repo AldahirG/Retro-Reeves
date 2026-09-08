@@ -1,0 +1,171 @@
+---
+import Layout from '../layouts/Layout.astro'
+import Navbar from '../components/navbar'
+import Footer from '../components/footer'
+import { getNavLinks } from '../lib/sanity'
+
+const base   = import.meta.env.BASE_URL.replace(/\/$/, '')
+const apiUrl = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3000'
+const navLinks = await getNavLinks()
+---
+
+<Layout title="Iniciar sesión — Retro Reeves">
+<style>
+  body { background: #f5f4ef; }
+  .auth-hero { background: #0d0d0d; padding: 5rem 0 2.5rem; }
+  .auth-hero__title { font-family: 'Noto Sans', sans-serif; font-weight: 800; font-size: clamp(1.8rem,4vw,2.6rem); letter-spacing: -0.04em; color: #fff; margin: 0 0 0.3rem; }
+  .auth-hero__sub   { font-family: 'PT Mono', monospace; font-size: 0.72rem; letter-spacing: 0.15em; text-transform: uppercase; color: rgba(255,255,255,0.35); margin: 0; }
+  .auth-main { padding: 2.5rem 0 5rem; }
+  .auth-card { background: #fff; max-width: 420px; margin: 0 auto; }
+  .auth-form { padding: 2rem; display: flex; flex-direction: column; gap: 1.1rem; }
+  .auth-label { display: block; font-family: 'PT Mono', monospace; font-size: 0.7rem; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(0,0,0,0.38); margin-bottom: 0.3rem; }
+  .auth-input {
+    width: 100%; border: 1px solid rgba(0,0,0,0.13); padding: 0.7rem 0.9rem;
+    font-family: 'Noto Sans', sans-serif; font-size: 0.95rem; color: #0d0d0d;
+    background: #fff; outline: none; box-sizing: border-box; border-radius: 0;
+    transition: border-color 0.2s;
+  }
+  .auth-input:focus { border-color: #0d0d0d; }
+  .auth-btn {
+    background: #0d0d0d; color: #fff; border: none; padding: 0.9rem;
+    font-family: 'PT Mono', monospace; font-size: 0.75rem; letter-spacing: 0.14em;
+    text-transform: uppercase; font-weight: 700; cursor: pointer; width: 100%;
+    border-radius: 0; transition: opacity 0.18s; margin-top: 0.25rem;
+  }
+  .auth-btn:hover { opacity: 0.82; }
+  .auth-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+  .auth-err  { font-family: 'PT Mono', monospace; font-size: 0.72rem; color: #c8382a; display: none; padding: 0.6rem 0.8rem; background: #fee2e2; }
+  .auth-footer-links {
+    padding: 1.25rem 2rem;
+    border-top: 1px solid rgba(0,0,0,0.07);
+    display: flex; flex-direction: column; gap: 0.5rem; align-items: center;
+  }
+  .auth-footer-links a {
+    font-family: 'PT Mono', monospace; font-size: 0.72rem; letter-spacing: 0.08em;
+    color: rgba(0,0,0,0.45); text-decoration: none; transition: color 0.2s;
+  }
+  .auth-footer-links a:hover { color: #0d0d0d; }
+  .auth-divider {
+    display: flex; align-items: center; gap: 0.75rem;
+    font-family: 'PT Mono', monospace; font-size: 0.68rem;
+    letter-spacing: 0.1em; text-transform: uppercase; color: rgba(0,0,0,0.25);
+  }
+  .auth-divider::before, .auth-divider::after { content: ''; flex: 1; height: 1px; background: rgba(0,0,0,0.1); }
+  .pw-toggle {
+    position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%);
+    background: none; border: none; cursor: pointer; color: rgba(0,0,0,0.3);
+    padding: 4px; display: flex; align-items: center; transition: color 0.2s;
+  }
+  .pw-toggle:hover { color: #0d0d0d; }
+  .pw-wrap { position: relative; }
+  .pw-wrap .auth-input { padding-right: 2.5rem; }
+</style>
+
+<div>
+  <Navbar client:load solid={true} navLinks={navLinks.length ? navLinks : undefined} />
+
+  <div class="auth-hero">
+    <div class="container">
+      <h1 class="auth-hero__title">Iniciar sesión</h1>
+      <p class="auth-hero__sub">Accede a tus pedidos y datos guardados</p>
+    </div>
+  </div>
+
+  <div class="auth-main">
+    <div class="container">
+      <div class="auth-card">
+        <div class="auth-form" id="login-form">
+          <div>
+            <label class="auth-label" for="l-email">Correo electrónico</label>
+            <input class="auth-input" id="l-email" type="email" placeholder="tu@correo.com" autocomplete="email" />
+          </div>
+          <div>
+            <label class="auth-label" for="l-password">Contraseña</label>
+            <div class="pw-wrap">
+              <input class="auth-input" id="l-password" type="password" placeholder="••••••••" autocomplete="current-password" />
+              <button class="pw-toggle" id="l-toggle" type="button" aria-label="Mostrar contraseña">
+                <svg id="l-eye" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <p class="auth-err" id="l-err"></p>
+
+          <button class="auth-btn" id="l-btn" type="button">Entrar</button>
+
+          <div class="auth-divider">o</div>
+
+          <a href={`${base}/shopping-cart`} style="text-align:center;font-family:'PT Mono',monospace;font-size:0.58rem;letter-spacing:0.08em;color:rgba(0,0,0,0.4);text-decoration:none;transition:color 0.2s;" onmouseover="this.style.color='#0d0d0d'" onmouseout="this.style.color='rgba(0,0,0,0.4)'">
+            Continuar sin registro →
+          </a>
+        </div>
+
+        <div class="auth-footer-links">
+          <a href={`${base}/registro`}>¿No tienes cuenta? Créala gratis →</a>
+          <a href={`${base}/recuperar-password`} style="color:rgba(0,0,0,0.28);">¿Olvidaste tu contraseña?</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <Footer />
+</div>
+
+<script define:vars={{ apiUrl, base }} is:inline>
+  const API = apiUrl || 'http://localhost:3000'
+
+  // Toggle password visibility
+  document.getElementById('l-toggle')?.addEventListener('click', () => {
+    const pw = document.getElementById('l-password')
+    pw.type = pw.type === 'password' ? 'text' : 'password'
+  })
+
+  document.getElementById('l-btn')?.addEventListener('click', async () => {
+    const email    = document.getElementById('l-email')?.value?.trim()
+    const password = document.getElementById('l-password')?.value
+    const errEl    = document.getElementById('l-err')
+    const btn      = document.getElementById('l-btn')
+
+    errEl.style.display = 'none'
+    if (!email || !password) {
+      errEl.textContent = 'Ingresa tu correo y contraseña.'
+      errEl.style.display = 'block'
+      return
+    }
+
+    btn.disabled = true
+    btn.textContent = 'Entrando...'
+    try {
+      const res  = await fetch(`${API}/api/auth/sign-in/email`, {
+        method:      'POST',
+        headers:     { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body:        JSON.stringify({ email, password }),
+      })
+      const data = await res.json()
+      if (!res.ok || data.error) {
+        errEl.textContent = data.error ?? 'Correo o contraseña incorrectos.'
+        errEl.style.display = 'block'
+      } else {
+        // Redirige al carrito o a la página anterior
+        const returnTo = new URLSearchParams(window.location.search).get('return') || `${base}/shopping-cart`
+        window.location.href = returnTo
+      }
+    } catch {
+      errEl.textContent = 'Error de conexión. Intenta de nuevo.'
+      errEl.style.display = 'block'
+    } finally {
+      btn.disabled = false
+      btn.textContent = 'Entrar'
+    }
+  })
+
+  // Enter key
+  document.getElementById('l-password')?.addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('l-btn')?.click()
+  })
+  document.getElementById('l-email')?.addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('l-password')?.focus()
+  })
+</script>
+</Layout>

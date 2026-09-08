@@ -564,7 +564,8 @@ const { base } = Astro.props;
 }
 /* La card padre debe tener position:relative y overflow:hidden */
 .rr-product-card:hover .rr-qv-trigger,
-.rr-rel-card:hover .rr-qv-trigger {
+.rr-rel-card:hover .rr-qv-trigger,
+.drop-card:hover .rr-qv-trigger {
   transform: translateY(0);
 }
 </style>
@@ -806,6 +807,7 @@ const { base } = Astro.props;
     const btn = e.target.closest('.rr-qv-trigger');
     if (!btn) return;
     e.preventDefault();
+    e.stopPropagation();
     openQV(btn.dataset);
   });
 

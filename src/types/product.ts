@@ -12,5 +12,6 @@ export interface Product {
   sizes: string[]
   colors: string[]
   images: string[]
+  colorImages?: Record<string, string[]>
   description: string
 }

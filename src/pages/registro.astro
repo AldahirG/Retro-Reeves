@@ -1,0 +1,224 @@
+---
+import Layout from '../layouts/Layout.astro'
+import Navbar from '../components/navbar'
+import Footer from '../components/footer'
+import { getNavLinks } from '../lib/sanity'
+
+const base   = import.meta.env.BASE_URL.replace(/\/$/, '')
+const apiUrl = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3000'
+const navLinks = await getNavLinks()
+---
+
+<Layout title="Crear cuenta — Retro Reeves">
+<style>
+  body { background: #f5f4ef; }
+  .auth-hero { background: #0d0d0d; padding: 5rem 0 2.5rem; }
+  .auth-hero__title { font-family: 'Noto Sans', sans-serif; font-weight: 800; font-size: clamp(1.8rem,4vw,2.6rem); letter-spacing: -0.04em; color: #fff; margin: 0 0 0.3rem; }
+  .auth-hero__sub   { font-family: 'PT Mono', monospace; font-size: 0.72rem; letter-spacing: 0.15em; text-transform: uppercase; color: rgba(255,255,255,0.35); margin: 0; }
+  .auth-main { padding: 2.5rem 0 5rem; }
+  .auth-card { background: #fff; max-width: 420px; margin: 0 auto; }
+  .auth-form { padding: 2rem; display: flex; flex-direction: column; gap: 1.1rem; }
+  .auth-label { display: block; font-family: 'PT Mono', monospace; font-size: 0.7rem; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(0,0,0,0.38); margin-bottom: 0.3rem; }
+  .auth-input {
+    width: 100%; border: 1px solid rgba(0,0,0,0.13); padding: 0.7rem 0.9rem;
+    font-family: 'Noto Sans', sans-serif; font-size: 0.95rem; color: #0d0d0d;
+    background: #fff; outline: none; box-sizing: border-box; border-radius: 0;
+    transition: border-color 0.2s;
+  }
+  .auth-input:focus { border-color: #0d0d0d; }
+  .auth-input.error { border-color: #c8382a; }
+  .auth-btn {
+    background: #0d0d0d; color: #fff; border: none; padding: 0.9rem;
+    font-family: 'PT Mono', monospace; font-size: 0.75rem; letter-spacing: 0.14em;
+    text-transform: uppercase; font-weight: 700; cursor: pointer; width: 100%;
+    border-radius: 0; transition: opacity 0.18s; margin-top: 0.25rem;
+  }
+  .auth-btn:hover { opacity: 0.82; }
+  .auth-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+  .auth-err  { font-family: 'PT Mono', monospace; font-size: 0.72rem; color: #c8382a; display: none; padding: 0.6rem 0.8rem; background: #fee2e2; }
+  .auth-ok   { font-family: 'PT Mono', monospace; font-size: 0.72rem; color: #166534; display: none; padding: 0.6rem 0.8rem; background: #dcfce7; }
+  .auth-footer-links {
+    padding: 1.25rem 2rem;
+    border-top: 1px solid rgba(0,0,0,0.07);
+    display: flex; flex-direction: column; gap: 0.5rem; align-items: center;
+  }
+  .auth-footer-links a {
+    font-family: 'PT Mono', monospace; font-size: 0.72rem; letter-spacing: 0.08em;
+    color: rgba(0,0,0,0.45); text-decoration: none; transition: color 0.2s;
+  }
+  .auth-footer-links a:hover { color: #0d0d0d; }
+  .pw-toggle {
+    position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%);
+    background: none; border: none; cursor: pointer; color: rgba(0,0,0,0.3);
+    padding: 4px; display: flex; align-items: center; transition: color 0.2s;
+  }
+  .pw-toggle:hover { color: #0d0d0d; }
+  .pw-wrap { position: relative; }
+  .pw-wrap .auth-input { padding-right: 2.5rem; }
+  .pw-strength {
+    height: 3px; border-radius: 2px; background: rgba(0,0,0,0.08);
+    margin-top: 0.4rem; overflow: hidden;
+  }
+  .pw-strength__bar { height: 100%; width: 0; border-radius: 2px; transition: width 0.3s, background 0.3s; }
+  .field-hint { font-family: 'PT Mono', monospace; font-size: 0.68rem; color: rgba(0,0,0,0.3); margin-top: 0.25rem; }
+  .benefits {
+    background: #f5f4ef; padding: 1.25rem 2rem;
+    border-top: 1px solid rgba(0,0,0,0.06);
+  }
+  .benefits__title { font-family: 'PT Mono', monospace; font-size: 0.68rem; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(0,0,0,0.3); margin: 0 0 0.6rem; }
+  .benefits ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 0.3rem; }
+  .benefits li { font-family: 'Noto Sans', sans-serif; font-size: 0.85rem; color: rgba(0,0,0,0.55); display: flex; align-items: center; gap: 0.45rem; }
+  .benefits li::before { content: '✓'; color: #16a34a; font-size: 0.7rem; flex-shrink: 0; }
+</style>
+
+<div>
+  <Navbar client:load solid={true} navLinks={navLinks.length ? navLinks : undefined} />
+
+  <div class="auth-hero">
+    <div class="container">
+      <h1 class="auth-hero__title">Crear cuenta</h1>
+      <p class="auth-hero__sub">Únete a Retro Reeves</p>
+    </div>
+  </div>
+
+  <div class="auth-main">
+    <div class="container">
+      <div class="auth-card">
+
+        <div class="benefits">
+          <p class="benefits__title">Beneficios</p>
+          <ul>
+            <li>Historial de pedidos siempre visible</li>
+            <li>Datos de envío guardados</li>
+            <li>Seguimiento de pedidos en tiempo real</li>
+            <li>Acceso anticipado a nuevos drops</li>
+          </ul>
+        </div>
+
+        <div class="auth-form">
+          <div>
+            <label class="auth-label" for="r-name">Nombre completo</label>
+            <input class="auth-input" id="r-name" type="text" placeholder="Tu nombre" autocomplete="name" />
+          </div>
+          <div>
+            <label class="auth-label" for="r-email">Correo electrónico</label>
+            <input class="auth-input" id="r-email" type="email" placeholder="tu@correo.com" autocomplete="email" />
+          </div>
+          <div>
+            <label class="auth-label" for="r-phone">Teléfono (10 dígitos)</label>
+            <input class="auth-input" id="r-phone" type="tel" placeholder="55 1234 5678" autocomplete="tel" />
+            <p class="field-hint">Lo usaremos para rastrear tus pedidos</p>
+          </div>
+          <div>
+            <label class="auth-label" for="r-password">Contraseña</label>
+            <div class="pw-wrap">
+              <input class="auth-input" id="r-password" type="password" placeholder="Mínimo 8 caracteres" autocomplete="new-password" />
+              <button class="pw-toggle" id="r-toggle" type="button" aria-label="Mostrar contraseña">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+            <div class="pw-strength"><div class="pw-strength__bar" id="pw-bar"></div></div>
+          </div>
+
+          <p class="auth-err" id="r-err"></p>
+          <p class="auth-ok"  id="r-ok"></p>
+
+          <button class="auth-btn" id="r-btn" type="button">Crear cuenta</button>
+
+          <p style="font-family:'PT Mono',monospace;font-size:0.48rem;color:rgba(0,0,0,0.28);text-align:center;line-height:1.5;">
+            Al crear tu cuenta aceptas nuestros términos de uso y política de privacidad.
+          </p>
+        </div>
+
+        <div class="auth-footer-links">
+          <a href={`${base}/login`}>¿Ya tienes cuenta? Inicia sesión →</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <Footer />
+</div>
+
+<script define:vars={{ apiUrl, base }} is:inline>
+  const API = apiUrl || 'http://localhost:3000'
+
+  // Toggle password
+  document.getElementById('r-toggle')?.addEventListener('click', () => {
+    const pw = document.getElementById('r-password')
+    pw.type = pw.type === 'password' ? 'text' : 'password'
+  })
+
+  // Password strength indicator
+  document.getElementById('r-password')?.addEventListener('input', () => {
+    const v   = document.getElementById('r-password').value
+    const bar = document.getElementById('pw-bar')
+    if (!bar) return
+    let score = 0
+    if (v.length >= 8)  score++
+    if (/[A-Z]/.test(v)) score++
+    if (/[0-9]/.test(v)) score++
+    if (/[^A-Za-z0-9]/.test(v)) score++
+    const colors = ['#c8382a','#f97316','#eab308','#16a34a']
+    bar.style.width = (score * 25) + '%'
+    bar.style.background = colors[score - 1] ?? '#c8382a'
+  })
+
+  document.getElementById('r-btn')?.addEventListener('click', async () => {
+    const name     = document.getElementById('r-name')?.value?.trim()
+    const email    = document.getElementById('r-email')?.value?.trim()
+    const phone    = document.getElementById('r-phone')?.value?.trim()
+    const password = document.getElementById('r-password')?.value
+    const errEl    = document.getElementById('r-err')
+    const okEl     = document.getElementById('r-ok')
+    const btn      = document.getElementById('r-btn')
+
+    errEl.style.display = 'none'
+    okEl.style.display  = 'none'
+
+    if (!name || !email || !password) {
+      errEl.textContent = 'Nombre, correo y contraseña son obligatorios.'
+      errEl.style.display = 'block'
+      return
+    }
+    if (password.length < 8) {
+      errEl.textContent = 'La contraseña debe tener mínimo 8 caracteres.'
+      errEl.style.display = 'block'
+      return
+    }
+
+    btn.disabled = true
+    btn.textContent = 'Creando cuenta...'
+    try {
+      const res  = await fetch(`${API}/api/auth/sign-up/email`, {
+        method:      'POST',
+        headers:     { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body:        JSON.stringify({ name, email, password }),
+      })
+      const data = await res.json()
+      if (!res.ok || data.error) {
+        errEl.textContent = data.error ?? 'No se pudo crear la cuenta. El correo ya está en uso.'
+        errEl.style.display = 'block'
+      } else {
+        // Si el registro devuelve sesión activa, redirige directo
+        okEl.textContent = '¡Cuenta creada! Redirigiendo...'
+        okEl.style.display = 'block'
+        setTimeout(() => {
+          window.location.href = `${base}/shopping-cart`
+        }, 1200)
+      }
+    } catch {
+      errEl.textContent = 'Error de conexión. Intenta de nuevo.'
+      errEl.style.display = 'block'
+    } finally {
+      btn.disabled = false
+      btn.textContent = 'Crear cuenta'
+    }
+  })
+
+  document.getElementById('r-password')?.addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('r-btn')?.click()
+  })
+</script>
+</Layout>

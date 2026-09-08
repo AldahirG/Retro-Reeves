@@ -2,9 +2,11 @@
 import Layout from '../layouts/Layout.astro';
 import Navbar from '../components/navbar';
 import Footer from '../components/footer';
+import { getNavLinks } from '../lib/sanity';
 
 const base   = import.meta.env.BASE_URL.replace(/\/$/, '');
 const apiUrl = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3000';
+const navLinks = await getNavLinks();
 ---
 
 <Layout title="Carrito — Retro Reeves">
@@ -63,7 +65,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3000';
 }
 .rr-hero__sub {
   font-family: 'PT Mono', monospace !important;
-  font-size: 0.6rem !important;
+  font-size: 0.72rem !important;
   letter-spacing: 0.15em !important;
   text-transform: uppercase !important;
   color: rgba(255,255,255,0.38) !important;
@@ -87,7 +89,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3000';
 }
 .rr-sb-lbl {
   font-family: 'PT Mono', monospace !important;
-  font-size: 0.58rem !important;
+  font-size: 0.72rem !important;
   letter-spacing: 0.1em !important;
   text-transform: uppercase !important;
   color: rgba(0,0,0,0.45) !important;
@@ -98,7 +100,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3000';
 .rr-sb-lbl.free strong { color: #16a34a !important; }
 .rr-sb-pct {
   font-family: 'PT Mono', monospace !important;
-  font-size: 0.55rem !important;
+  font-size: 0.68rem !important;
   color: rgba(0,0,0,0.3) !important;
   white-space: nowrap !important;
   flex-shrink: 0 !important;
@@ -138,7 +140,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3000';
   align-items: center !important;
   gap: 0.38rem !important;
   font-family: 'PT Mono', monospace !important;
-  font-size: 0.55rem !important;
+  font-size: 0.7rem !important;
   letter-spacing: 0.12em !important;
   text-transform: uppercase !important;
   color: rgba(0,0,0,0.28) !important;
@@ -149,14 +151,14 @@ const apiUrl = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3000';
 .rr-step.active { color: #0d0d0d !important; }
 .rr-step.done   { color: #16a34a !important; }
 .rr-step__num {
-  width: 20px !important;
-  height: 20px !important;
+  width: 22px !important;
+  height: 22px !important;
   border-radius: 50% !important;
   border: 1.5px solid currentColor !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  font-size: 0.55rem !important;
+  font-size: 0.65rem !important;
   font-weight: 700 !important;
   flex-shrink: 0 !important;
   transition: all 0.3s !important;
@@ -193,12 +195,58 @@ const apiUrl = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3000';
   }
   .rr-col-left {
     order: 1 !important;
+    padding-bottom: 80px !important; /* espacio para barra sticky */
   }
   .rr-sidebar {
     order: 2 !important;
     position: static !important;
     top: auto !important;
   }
+}
+
+/* Barra sticky de checkout en móvil */
+.rr-mobile-cta {
+  display: none;
+}
+@media (max-width: 860px) {
+  .rr-mobile-cta {
+    display: flex !important;
+    position: fixed !important;
+    bottom: 0 !important; left: 0 !important; right: 0 !important;
+    background: #0d0d0d !important;
+    padding: 0.85rem 1rem !important;
+    z-index: 500 !important;
+    gap: 0.75rem !important;
+    align-items: center !important;
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.25) !important;
+  }
+  .rr-mobile-cta__total {
+    font-family: 'PT Mono', monospace !important;
+    font-size: 1rem !important;
+    font-weight: 700 !important;
+    color: #fff !important;
+    flex-shrink: 0 !important;
+  }
+  .rr-mobile-cta__btn {
+    flex: 1 !important;
+    background: #fff !important;
+    color: #0d0d0d !important;
+    border: none !important;
+    padding: 0.85rem !important;
+    font-family: 'PT Mono', monospace !important;
+    font-size: 0.72rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.12em !important;
+    text-transform: uppercase !important;
+    cursor: pointer !important;
+    border-radius: 0 !important;
+    transition: opacity 0.18s !important;
+  }
+  .rr-mobile-cta__btn:disabled {
+    opacity: 0.35 !important;
+    cursor: not-allowed !important;
+  }
+  .rr-mobile-cta.step2 { display: none !important; }
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -211,7 +259,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3000';
 }
 .rr-panel__title {
   font-family: 'PT Mono', monospace !important;
-  font-size: 0.52rem !important;
+  font-size: 0.7rem !important;
   letter-spacing: 0.18em !important;
   text-transform: uppercase !important;
   color: rgba(0,0,0,0.3) !important;
@@ -294,7 +342,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3000';
 }
 .rr-ticket__meta {
   font-family: 'PT Mono', monospace !important;
-  font-size: 0.54rem !important;
+  font-size: 0.68rem !important;
   letter-spacing: 0.09em !important;
   text-transform: uppercase !important;
   color: rgba(0,0,0,0.38) !important;
@@ -307,7 +355,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3000';
   background: #c8382a !important;
   color: #fff !important;
   font-family: 'PT Mono', monospace !important;
-  font-size: 0.42rem !important;
+  font-size: 0.6rem !important;
   letter-spacing: 0.1em !important;
   text-transform: uppercase !important;
   padding: 1px 5px !important;
@@ -339,7 +387,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3000';
 }
 .rr-ticket__price-unit {
   font-family: 'PT Mono', monospace !important;
-  font-size: 0.5rem !important;
+  font-size: 0.65rem !important;
   color: rgba(0,0,0,0.3) !important;
   font-weight: 400 !important;
   margin-left: 0.18rem !important;
@@ -347,14 +395,14 @@ const apiUrl = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3000';
 }
 .rr-ticket__remove {
   position: absolute !important;
-  top: 0.4rem !important;
-  right: 0.45rem !important;
+  top: 0.2rem !important;
+  right: 0.25rem !important;
   background: none !important;
   border: none !important;
   cursor: pointer !important;
-  padding: 2px 4px !important;
+  padding: 6px 8px !important;
   font-family: 'PT Mono', monospace !important;
-  font-size: 0.46rem !important;
+  font-size: 0.62rem !important;
   letter-spacing: 0.08em !important;
   text-transform: uppercase !important;
   color: rgba(0,0,0,0.22) !important;
@@ -440,7 +488,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3000';
 }
 .rr-empty__icon  { font-size: 2rem !important; opacity: 0.08 !important; margin-bottom: 0.8rem !important; display: block !important; }
 .rr-empty__title { font-family: 'Noto Sans', sans-serif !important; font-weight: 800 !important; font-size: 1rem !important; letter-spacing: -0.02em !important; margin: 0 0 0.3rem !important; color: #0d0d0d !important; }
-.rr-empty__sub   { font-family: 'PT Mono', monospace !important; font-size: 0.56rem !important; letter-spacing: 0.1em !important; text-transform: uppercase !important; color: rgba(0,0,0,0.28) !important; margin-bottom: 1.2rem !important; display: block !important; }
+.rr-empty__sub   { font-family: 'PT Mono', monospace !important; font-size: 0.72rem !important; letter-spacing: 0.1em !important; text-transform: uppercase !important; color: rgba(0,0,0,0.28) !important; margin-bottom: 1.2rem !important; display: block !important; }
 
 /* ═══════════════════════════════════════════════════════
    SUGERIDOS
@@ -453,7 +501,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3000';
 }
 .rr-sug-title {
   font-family: 'PT Mono', monospace !important;
-  font-size: 0.52rem !important;
+  font-size: 0.68rem !important;
   letter-spacing: 0.16em !important;
   text-transform: uppercase !important;
   color: rgba(0,0,0,0.3) !important;
@@ -528,7 +576,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3000';
 }
 .rr-summary__title {
   font-family: 'PT Mono', monospace !important;
-  font-size: 0.5rem !important;
+  font-size: 0.7rem !important;
   letter-spacing: 0.18em !important;
   text-transform: uppercase !important;
   color: rgba(255,255,255,0.32) !important;
@@ -548,7 +596,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3000';
 }
 .rr-metric__lbl {
   font-family: 'PT Mono', monospace !important;
-  font-size: 0.46rem !important;
+  font-size: 0.65rem !important;
   letter-spacing: 0.12em !important;
   text-transform: uppercase !important;
   color: rgba(255,255,255,0.3) !important;
@@ -595,7 +643,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3000';
 }
 .rr-smi__meta {
   font-family: 'PT Mono', monospace !important;
-  font-size: 0.48rem !important;
+  font-size: 0.65rem !important;
   color: rgba(255,255,255,0.32) !important;
   letter-spacing: 0.06em !important;
   margin: 1px 0 0 !important;
@@ -618,7 +666,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3000';
 }
 .rr-sum-lbl {
   font-family: 'PT Mono', monospace !important;
-  font-size: 0.54rem !important;
+  font-size: 0.72rem !important;
   letter-spacing: 0.1em !important;
   text-transform: uppercase !important;
   color: rgba(255,255,255,0.36) !important;
@@ -672,7 +720,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3000';
   justify-content: center !important;
   gap: 0.4rem !important;
   font-family: 'PT Mono', monospace !important;
-  font-size: 0.62rem !important;
+  font-size: 0.75rem !important;
   letter-spacing: 0.12em !important;
   text-transform: uppercase !important;
   padding: 0.85rem !important;
@@ -702,7 +750,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3000';
 .rr-btn[disabled], .rr-btn:disabled { opacity: 0.3 !important; pointer-events: none !important; cursor: not-allowed !important; }
 .rr-sum-note {
   font-family: 'PT Mono', monospace !important;
-  font-size: 0.47rem !important;
+  font-size: 0.65rem !important;
   letter-spacing: 0.04em !important;
   text-align: center !important;
   color: rgba(255,255,255,0.2) !important;
@@ -720,7 +768,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3000';
   align-items: center !important;
   gap: 0.32rem !important;
   font-family: 'PT Mono', monospace !important;
-  font-size: 0.55rem !important;
+  font-size: 0.7rem !important;
   letter-spacing: 0.1em !important;
   text-transform: uppercase !important;
   color: rgba(0,0,0,0.34) !important;
@@ -738,7 +786,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3000';
 .rr-fsec:last-child { border-bottom: none !important; }
 .rr-ftitle {
   font-family: 'PT Mono', monospace !important;
-  font-size: 0.5rem !important;
+  font-size: 0.7rem !important;
   letter-spacing: 0.18em !important;
   text-transform: uppercase !important;
   color: rgba(0,0,0,0.28) !important;
@@ -751,7 +799,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3000';
 .rr-field { display: flex !important; flex-direction: column !important; gap: 0.25rem !important; }
 .rr-field label {
   font-family: 'PT Mono', monospace !important;
-  font-size: 0.5rem !important;
+  font-size: 0.7rem !important;
   letter-spacing: 0.1em !important;
   text-transform: uppercase !important;
   color: rgba(0,0,0,0.38) !important;
@@ -775,7 +823,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3000';
 .rr-field input:focus,
 .rr-field textarea:focus { border-color: #0d0d0d !important; }
 .rr-field input.err { border-color: #c8382a !important; }
-.rr-errmsg { font-family: 'PT Mono', monospace !important; font-size: 0.48rem !important; color: #c8382a !important; display: none !important; margin: 0 !important; }
+.rr-errmsg { font-family: 'PT Mono', monospace !important; font-size: 0.65rem !important; color: #c8382a !important; display: none !important; margin: 0 !important; }
 .rr-field input.err ~ .rr-errmsg { display: block !important; }
 .rr-ship-info {
   background: #f5f4ef !important;
@@ -783,8 +831,8 @@ const apiUrl = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3000';
   padding: 0.75rem 0.9rem !important;
   margin-top: 0.9rem !important;
 }
-.rr-ship-info p { font-family: 'PT Mono', monospace !important; font-size: 0.54rem !important; letter-spacing: 0.1em !important; text-transform: uppercase !important; font-weight: 700 !important; margin: 0 0 0.4rem !important; }
-.rr-ship-info li { font-family: 'PT Mono', monospace !important; font-size: 0.52rem !important; color: rgba(0,0,0,0.48) !important; display: flex !important; gap: 0.32rem !important; margin-bottom: 0.16rem !important; list-style: none !important; padding: 0 !important; }
+.rr-ship-info p { font-family: 'PT Mono', monospace !important; font-size: 0.7rem !important; letter-spacing: 0.1em !important; text-transform: uppercase !important; font-weight: 700 !important; margin: 0 0 0.4rem !important; }
+.rr-ship-info li { font-family: 'PT Mono', monospace !important; font-size: 0.68rem !important; color: rgba(0,0,0,0.48) !important; display: flex !important; gap: 0.32rem !important; margin-bottom: 0.16rem !important; list-style: none !important; padding: 0 !important; }
 
 /* ═══════════════════════════════════════════════════════
    SUCCESS
@@ -802,7 +850,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3000';
 }
 @keyframes pop { 0%{transform:scale(0);opacity:0} 100%{transform:scale(1);opacity:1} }
 .rr-success__title { font-family: 'Noto Sans', sans-serif !important; font-weight: 800 !important; font-size: 1.35rem !important; letter-spacing: -0.02em !important; margin: 0 0 0.45rem !important; }
-.rr-success__sub   { font-family: 'PT Mono', monospace !important; font-size: 0.56rem !important; letter-spacing: 0.08em !important; text-transform: uppercase !important; color: rgba(0,0,0,0.3) !important; line-height: 2 !important; margin: 0 auto 1.8rem !important; max-width: 280px !important; display: block !important; }
+.rr-success__sub   { font-family: 'PT Mono', monospace !important; font-size: 0.72rem !important; letter-spacing: 0.08em !important; text-transform: uppercase !important; color: rgba(0,0,0,0.3) !important; line-height: 2 !important; margin: 0 auto 1.8rem !important; max-width: 280px !important; display: block !important; }
 
 /* ═══════════════════════════════════════════════════════
    DIALOG + TOAST
@@ -828,7 +876,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3000';
 }
 @keyframes slideup { from{transform:translateY(20px);opacity:0} to{transform:translateY(0);opacity:1} }
 .rr-dialog__title { font-family: 'Noto Sans', sans-serif !important; font-weight: 800 !important; font-size: 0.95rem !important; letter-spacing: -0.02em !important; margin: 0 0 0.38rem !important; }
-.rr-dialog__sub   { font-family: 'PT Mono', monospace !important; font-size: 0.58rem !important; letter-spacing: 0.06em !important; color: rgba(0,0,0,0.4) !important; margin: 0 0 1.3rem !important; line-height: 1.7 !important; }
+.rr-dialog__sub   { font-family: 'PT Mono', monospace !important; font-size: 0.72rem !important; letter-spacing: 0.06em !important; color: rgba(0,0,0,0.4) !important; margin: 0 0 1.3rem !important; line-height: 1.7 !important; }
 .rr-dialog__btns  { display: flex !important; gap: 0.45rem !important; }
 .rr-dialog .rr-btn { background: #0d0d0d !important; color: #fff !important; border-color: #0d0d0d !important; }
 .rr-dialog .rr-btn--ol { background: #fff !important; color: #0d0d0d !important; border-color: rgba(0,0,0,0.16) !important; }
@@ -840,7 +888,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3000';
   background: #0d0d0d !important;
   color: #fff !important;
   font-family: 'PT Mono', monospace !important;
-  font-size: 0.6rem !important;
+  font-size: 0.72rem !important;
   letter-spacing: 0.1em !important;
   text-transform: uppercase !important;
   padding: 0.7rem 1.4rem !important;
@@ -880,7 +928,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3000';
 
 <div class="rr-cart">
 
-  <Navbar client:load />
+  <Navbar client:load navLinks={navLinks.length ? navLinks : undefined} />
 
   <!-- HERO -->
   <div class="rr-hero">
@@ -1122,6 +1170,101 @@ const apiUrl = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3000';
   <!-- TOAST -->
   <div class="rr-toast" id="rr-toast"></div>
 
+  <!-- AUTH MODAL -->
+  <div id="rr-auth-overlay" style="
+    display:none;
+    position:fixed;inset:0;
+    background:rgba(0,0,0,0.55);
+    backdrop-filter:blur(4px);
+    z-index:3000;
+    align-items:center;
+    justify-content:center;
+    padding:1rem;
+  ">
+    <div style="
+      background:#fff;
+      width:100%;max-width:400px;
+      display:flex;flex-direction:column;
+      position:relative;
+    ">
+      <!-- Cerrar -->
+      <button id="rr-auth-close" style="
+        position:absolute;top:1rem;right:1rem;
+        background:none;border:none;cursor:pointer;
+        color:rgba(0,0,0,0.3);font-size:1.2rem;line-height:1;
+        padding:4px;
+      ">✕</button>
+
+      <!-- Header -->
+      <div style="padding:2rem 2rem 1.25rem;border-bottom:1px solid rgba(0,0,0,0.08)">
+        <p style="font-family:'PT Mono',monospace;font-size:0.58rem;letter-spacing:0.15em;text-transform:uppercase;color:rgba(0,0,0,0.35);margin:0 0 0.4rem">
+          Retro Reeves
+        </p>
+        <h2 style="font-family:'Noto Sans',sans-serif;font-weight:800;font-size:1.4rem;letter-spacing:-0.03em;margin:0;line-height:1.1">
+          ¿Tienes cuenta?
+        </h2>
+        <p style="font-family:'Noto Sans',sans-serif;font-size:0.82rem;color:rgba(0,0,0,0.5);margin:0.5rem 0 0;line-height:1.4">
+          Inicia sesión para guardar tus pedidos y datos de envío, o continúa como invitado.
+        </p>
+      </div>
+
+      <!-- Options -->
+      <div style="padding:1.25rem 2rem;display:flex;flex-direction:column;gap:0.75rem;">
+        <a href="/login" style="
+          display:flex;align-items:center;justify-content:center;gap:0.5rem;
+          background:#0d0d0d;color:#fff;
+          font-family:'PT Mono',monospace;font-size:0.68rem;letter-spacing:0.12em;text-transform:uppercase;
+          text-decoration:none;padding:1rem;font-weight:700;
+          transition:opacity 0.2s;
+        " onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
+          </svg>
+          Iniciar sesión
+        </a>
+
+        <a href="/registro" style="
+          display:flex;align-items:center;justify-content:center;gap:0.5rem;
+          background:#fff;color:#0d0d0d;
+          border:1px solid rgba(0,0,0,0.15);
+          font-family:'PT Mono',monospace;font-size:0.68rem;letter-spacing:0.12em;text-transform:uppercase;
+          text-decoration:none;padding:1rem;font-weight:700;
+          transition:border-color 0.2s;
+        " onmouseover="this.style.borderColor='#0d0d0d'" onmouseout="this.style.borderColor='rgba(0,0,0,0.15)'">
+          Crear cuenta
+        </a>
+
+        <button id="rr-auth-guest" style="
+          background:none;border:none;cursor:pointer;
+          font-family:'PT Mono',monospace;font-size:0.62rem;letter-spacing:0.1em;text-transform:uppercase;
+          color:rgba(0,0,0,0.4);padding:0.5rem;
+          text-decoration:underline;text-underline-offset:3px;
+          transition:color 0.2s;
+        " onmouseover="this.style.color='#0d0d0d'" onmouseout="this.style.color='rgba(0,0,0,0.4)'">
+          Continuar sin registro →
+        </button>
+      </div>
+
+      <!-- Benefits -->
+      <div style="padding:0 2rem 2rem;border-top:1px solid rgba(0,0,0,0.06);padding-top:1rem;">
+        <p style="font-family:'PT Mono',monospace;font-size:0.56rem;letter-spacing:0.1em;text-transform:uppercase;color:rgba(0,0,0,0.3);margin:0 0 0.5rem">Beneficios de tener cuenta</p>
+        <ul style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:0.3rem;">
+          {['Historial de pedidos','Datos de envío guardados','Seguimiento en tiempo real','Acceso a preventas'].map(b => (
+            <li style="font-family:'Noto Sans',sans-serif;font-size:0.78rem;color:rgba(0,0,0,0.5);display:flex;align-items:center;gap:0.5rem;">
+              <span style="color:#16a34a;font-size:0.7rem;">✓</span> {b}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- MOBILE STICKY CTA -->
+  <div class="rr-mobile-cta" id="mobile-cta">
+    <span class="rr-mobile-cta__total" id="mob-total">$0 MXN</span>
+    <button class="rr-mobile-cta__btn" id="mob-btn-checkout" type="button" disabled>Continuar →</button>
+  </div>
+
   <Footer />
 </div>
 
@@ -1176,6 +1319,11 @@ const apiUrl = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3000';
   function updateSummary() {
     const s    = sub(), t = tot(s), free = s >= FREE_AT
     const n    = cart.reduce((a, i) => a + (i.qty || 1), 0)
+    // mobile sticky CTA
+    const mobTotal = document.getElementById('mob-total')
+    const mobBtn   = document.getElementById('mob-btn-checkout')
+    if (mobTotal) mobTotal.textContent = fmx(t)
+    if (mobBtn)   mobBtn.disabled = !cart.length
     document.getElementById('s-sub').textContent   = fmx(s)
     document.getElementById('s-total').textContent = fmx(t)
     const sEl = document.getElementById('s-ship')
@@ -1352,6 +1500,8 @@ const apiUrl = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3000';
     document.getElementById('step-success').style.display = n === 3 ? 'block' : 'none'
     document.getElementById('cta-1').style.display        = n === 1 ? 'block' : 'none'
     document.getElementById('cta-2').style.display        = n === 2 ? 'block' : 'none'
+    const mobCta = document.getElementById('mobile-cta')
+    if (mobCta) mobCta.style.display = n === 1 ? '' : 'none'
     ;[1,2,3].forEach(i => {
       const si = document.getElementById('si' + i), sn = document.getElementById('sn' + i)
       si.classList.remove('active','done')
@@ -1382,11 +1532,12 @@ const apiUrl = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3000';
     })
   })
 
-  function buildWA() {
+  function buildWA(orderNumber) {
     const g = id => document.getElementById(id)?.value?.trim() ?? ''
     const s = sub(), free = s >= FREE_AT, t = tot(s)
     return 'https://wa.me/5217773019146?text=' + encodeURIComponent([
-      'NUEVO PEDIDO — RETRO REEVES','',
+      'NUEVO PEDIDO — RETRO REEVES',
+      orderNumber ? 'Orden: ' + orderNumber : null, '',
       'DATOS DEL CLIENTE', 'Nombre: '+g('f-name'), 'Telefono: '+g('f-phone'),
       g('f-email')?'Correo: '+g('f-email'):null,'',
       'DIRECCION DE ENTREGA','Calle: '+g('f-address'),'Ciudad: '+g('f-city')+', '+g('f-state'),'C.P.: '+g('f-cp'),
@@ -1394,6 +1545,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3000';
       'ARTICULOS',
       ...cart.map(i=>'- '+i.name+(i.size?' | Talla: '+i.size:'')+(i.color?' | Color: '+i.color:'')+' | Cantidad: '+(i.qty||1)+' | Precio: $'+(i.price*(i.qty||1)).toLocaleString('es-MX')+' MXN'),'',
       'RESUMEN','Subtotal: $'+s.toLocaleString('es-MX')+' MXN','Envio: '+(free?'GRATIS':'$150 MXN'),'Total: $'+t.toLocaleString('es-MX')+' MXN',
+      appliedDiscount ? 'Descuento ('+appliedDiscount.code+'): -$'+Number(appliedDiscount.savings).toLocaleString('es-MX')+' MXN' : null,
       g('f-notes')?'\nNotas: '+g('f-notes'):null,'','Por favor confirmar disponibilidad y metodo de pago.',
     ].filter(l=>l!==null).join('\n'))
   }
@@ -1468,6 +1620,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3000';
   })
 
   document.getElementById('btn-to-form')?.addEventListener('click', () => { if (!cart.length) return; renderMiniItems(); goTo(2) })
+  document.getElementById('mob-btn-checkout')?.addEventListener('click', () => { if (!cart.length) return; renderMiniItems(); goTo(2) })
   document.getElementById('btn-back')?.addEventListener('click', () => goTo(1))
   async function resolveOrderItems() {
     const items = []
@@ -1496,6 +1649,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3000';
     if (!validate()) { document.querySelector('.err')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); return }
     const g = id => document.getElementById(id)?.value?.trim() ?? ''
     const items = await resolveOrderItems()
+    let orderNumber = null
     if (items.length > 0) {
       try {
         const orderRes = await createOrder({
@@ -1511,12 +1665,13 @@ const apiUrl = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3000';
           channel: 'whatsapp',
         })
         if (orderRes?.orderNumber) {
+          orderNumber = orderRes.orderNumber
           const numEl = document.getElementById('success-order-num')
-          if (numEl) numEl.textContent = 'Tu número de orden: ' + orderRes.orderNumber
+          if (numEl) numEl.textContent = 'Tu número de orden: ' + orderNumber
         }
-      } catch { /* order registration best-effort — WA message is the source of truth */ }
+      } catch { /* best-effort */ }
     }
-    window.open(buildWA(), '_blank')
+    window.open(buildWA(orderNumber), '_blank')
     cart = []; save(); goTo(3); document.getElementById('cta-2').style.display = 'none'
   })
 
@@ -1525,5 +1680,38 @@ const apiUrl = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3000';
   window.addEventListener('cartUpdated', () => { cart = JSON.parse(localStorage.getItem('cart') || '[]'); renderCart() })
 
   renderCart()
+
+  // ── AUTH MODAL ─────────────────────────────────────────────
+  const authOverlay = document.getElementById('rr-auth-overlay')
+  const authClose   = document.getElementById('rr-auth-close')
+  const authGuest   = document.getElementById('rr-auth-guest')
+
+  function showAuthModal() {
+    if (!authOverlay) return
+    authOverlay.style.display = 'flex'
+    document.body.style.overflow = 'hidden'
+  }
+  function hideAuthModal() {
+    if (!authOverlay) return
+    authOverlay.style.display = 'none'
+    document.body.style.overflow = ''
+  }
+
+  // Mostrar siempre que haya items y el usuario NO tenga sesión activa
+  setTimeout(async () => {
+    const hasItems = (JSON.parse(localStorage.getItem('cart') || '[]')).length > 0
+    if (!hasItems) return
+    try {
+      const res = await fetch(`${API}/api/auth/get-session`, { credentials: 'include' })
+      const data = res.ok ? await res.json() : null
+      if (!data?.user) showAuthModal()   // no sesión → muestra modal
+    } catch {
+      showAuthModal()  // error de red → muestra modal igual
+    }
+  }, 300)
+
+  authClose?.addEventListener('click', hideAuthModal)
+  authGuest?.addEventListener('click', hideAuthModal)
+  authOverlay?.addEventListener('click', e => { if (e.target === authOverlay) hideAuthModal() })
 </script>
 </Layout>

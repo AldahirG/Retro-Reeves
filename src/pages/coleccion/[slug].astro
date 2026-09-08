@@ -2,6 +2,8 @@
 import Layout from "../../layouts/Layout.astro"
 import { getDrops, getDropBySlug } from "../../lib/drops"
 import { getProducts } from "../../lib/products"
+import { isDisabledSlug } from "../../lib/config"
+import { getNavLinks } from "../../lib/sanity"
 import Navbar from "../../components/navbar"
 import Footer from "../../components/footer"
 import QuickviewModal from "../../components/products/QuickviewModal.astro"
@@ -16,8 +18,16 @@ export async function getStaticPaths() {
 const base = import.meta.env.BASE_URL.replace(/\/$/, "")
 const url = (src: string) => src?.startsWith('http') ? src : `${base}/${src}`
 const { slug } = Astro.params
-const drop = await getDropBySlug(slug)
-const allProducts = await getProducts()
+
+if (isDisabledSlug(slug)) {
+  return Astro.redirect(`${base}/`, 302)
+}
+
+const [drop, allProducts, navLinks] = await Promise.all([
+  getDropBySlug(slug),
+  getProducts(),
+  getNavLinks(),
+])
 const products = allProducts.filter(
   p => p.category === slug || p.dropSlug === slug
 )
@@ -231,6 +241,9 @@ const products = allProducts.filter(
       position: relative;
       overflow: hidden;
       cursor: pointer;
+      display: block;
+      text-decoration: none;
+      color: var(--ink);
       transition: transform 0.3s cubic-bezier(.22,.68,0,1.2);
     }
 
@@ -357,7 +370,7 @@ const products = allProducts.filter(
   </style>
 
   <main>
-    <Navbar client:load />
+    <Navbar client:load navLinks={navLinks.length ? navLinks : undefined} />
 
     {drop ? (
       <>
@@ -423,7 +436,7 @@ const products = allProducts.filter(
           {products.length > 0 ? (
             <div class="drop-grid">
               {products.map(product => (
-                <article class="drop-card">
+                <a href={`${base}/product/${product.slug}`} class="drop-card">
                   {product.limited && (
                     <span class="drop-card__badge">Limited</span>
                   )}
@@ -460,15 +473,9 @@ const products = allProducts.filter(
                     </div>
                     <div class="drop-card__footer">
                       <span class="drop-card__price">${product.price} MXN</span>
-                      <a
-                        href={`${base}/product/${product.slug}`}
-                        class="drop-card__btn"
-                      >
-                        Ver →
-                      </a>
                     </div>
                   </div>
-                </article>
+                </a>
               ))}
             </div>
           ) : (

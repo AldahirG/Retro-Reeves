@@ -4,6 +4,7 @@ import Navbar from "../../components/navbar"
 import Footer from "../../components/footer"
 import QuickviewModal from "../../components/products/QuickviewModal.astro"
 import { getProducts, getProductBySlug } from "../../lib/products"
+import { getNavLinks } from "../../lib/sanity"
 
 const base = import.meta.env.BASE_URL.replace(/\/$/, "")
 const url = (src: string) => src?.startsWith('http') ? src : `${base}/${src}`
@@ -13,8 +14,11 @@ export async function getStaticPaths() {
   return products.map(p => ({ params: { slug: p.slug } }))
 }
 const { slug }   = Astro.params
-const product    = await getProductBySlug(slug)
-const allProducts = await getProducts()
+const [product, allProducts, navLinks] = await Promise.all([
+  getProductBySlug(slug),
+  getProducts(),
+  getNavLinks(),
+])
 
 // Relacionados: misma categoría, excluyendo el actual
 const related = allProducts
@@ -469,7 +473,7 @@ const fallback = related.length
 </style>
 
 <main>
-  <Navbar client:load />
+  <Navbar client:load solid={true} navLinks={navLinks.length ? navLinks : undefined} />
 
   {product ? (
     <div style="padding-top: 64px;">
@@ -677,15 +681,16 @@ const fallback = related.length
 <div class="rr-toast" id="rr-toast">✓ Agregado al carrito</div>
 
 <script define:vars={{
-  productId:     product?.id ?? '',
-  productName:   product?.name ?? '',
-  productPrice:  product?.price ?? 0,
-  productSlug:   product?.slug ?? '',
-  productImages: product?.images ?? [],
-  productSizes:  product?.sizes ?? [],
-  productColors: product?.colors ?? [],
+  productId:          product?.id ?? '',
+  productName:        product?.name ?? '',
+  productPrice:       product?.price ?? 0,
+  productSlug:        product?.slug ?? '',
+  productImages:      product?.images ?? [],
+  productSizes:       product?.sizes ?? [],
+  productColors:      product?.colors ?? [],
+  productColorImages: product?.colorImages ?? {},
   base,
-}}>
+}} is:inline>
   // ── GALERÍA ──────────────────────────────────
   const mainImg  = document.getElementById('gallery-main-img')
   const thumbs   = document.querySelectorAll('.rr-gallery__thumb')
@@ -707,14 +712,36 @@ const fallback = related.length
 
   // ── COLORES ───────────────────────────────────
   let selectedColor = productColors[0] ?? ''
-  const colorBtns = document.querySelectorAll('.rr-color-btn')
-  const colorLabel = document.getElementById('selected-color')
+  const colorBtns  = document.querySelectorAll('.rr-color-btn')
+  const colorLabel  = document.getElementById('selected-color')
+
+  function switchGalleryToColor(color) {
+    const imgs = (productColorImages[color] ?? [])
+    if (!imgs.length) return  // sin mapeo — no cambia nada
+    const mainImgEl = document.getElementById('gallery-main-img')
+    const thumbsEl  = document.querySelectorAll('.rr-gallery__thumb')
+    // Cambiar imagen principal
+    if (mainImgEl) {
+      mainImgEl.style.opacity = '0'
+      setTimeout(() => { mainImgEl.src = imgs[0]; mainImgEl.style.opacity = '1' }, 200)
+    }
+    // Actualizar thumbs: reemplazar src + data-src
+    thumbsEl.forEach((thumb, i) => {
+      const newSrc = imgs[i] ?? imgs[0]
+      thumb.dataset.src = newSrc
+      const img = thumb.querySelector('img')
+      if (img) img.src = newSrc
+      thumb.classList.toggle('active', i === 0)
+    })
+  }
+
   colorBtns.forEach(btn => {
     btn.addEventListener('click', () => {
       colorBtns.forEach(b => b.classList.remove('active'))
       btn.classList.add('active')
       selectedColor = btn.dataset.color ?? ''
       if (colorLabel) colorLabel.textContent = selectedColor
+      switchGalleryToColor(selectedColor)
       updateWALink()
     })
   })

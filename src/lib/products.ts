@@ -4,6 +4,16 @@ import productsJson from '../data/products.json'
 const API = import.meta.env.PUBLIC_API_URL
 
 function mapApiProduct(p: any): Product {
+  const rawImages: any[] = p.images ?? []
+  const colors: string[] = p.variants?.map((v: any) => v.color).filter(Boolean).filter((v: any, i: any, a: any) => a.indexOf(v) === i) ?? []
+
+  // Build color→urls map using image alt field convention (alt = color name)
+  const colorImages: Record<string, string[]> = {}
+  for (const color of colors) {
+    const matched = rawImages.filter(img => img.alt?.toLowerCase().includes(color.toLowerCase())).map((img: any) => img.url)
+    if (matched.length) colorImages[color] = matched
+  }
+
   return {
     id:          p.id,
     name:        p.name,
@@ -16,8 +26,9 @@ function mapApiProduct(p: any): Product {
     bestseller:  p.bestseller ?? false,
     visible:     p.visible ?? true,
     sizes:       p.variants?.map((v: any) => v.size).filter((v: any, i: any, a: any) => a.indexOf(v) === i) ?? [],
-    colors:      p.variants?.map((v: any) => v.color).filter(Boolean).filter((v: any, i: any, a: any) => a.indexOf(v) === i) ?? [],
-    images:      p.images?.map((img: any) => img.url) ?? [],
+    colors,
+    images:      rawImages.map((img: any) => img.url),
+    colorImages,
     description: p.description ?? '',
   }
 }

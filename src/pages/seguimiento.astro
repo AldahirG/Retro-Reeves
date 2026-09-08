@@ -2,9 +2,11 @@
 import Layout from '../layouts/Layout.astro'
 import Navbar from '../components/navbar'
 import Footer from '../components/footer'
+import { getNavLinks } from '../lib/sanity'
 
 const base = import.meta.env.BASE_URL.replace(/\/$/, '')
 const API  = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3000'
+const navLinks = await getNavLinks()
 ---
 
 <Layout title="Seguimiento de pedido — Retro Reeves">
@@ -13,31 +15,31 @@ const API  = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3000'
   body { background: #f5f4ef; }
   .trk-hero { background: #0d0d0d; padding: 5.5rem 0 2.5rem; }
   .trk-hero__title { font-family: var(--rr-sans); font-weight: 800; font-size: clamp(2rem,5vw,3rem); letter-spacing: -0.04em; color: #fff; margin: 0 0 0.3rem; }
-  .trk-hero__sub   { font-family: var(--rr-mono); font-size: 0.58rem; letter-spacing: 0.15em; text-transform: uppercase; color: rgba(255,255,255,0.35); margin: 0; }
+  .trk-hero__sub   { font-family: var(--rr-mono); font-size: 0.72rem; letter-spacing: 0.15em; text-transform: uppercase; color: rgba(255,255,255,0.35); margin: 0; }
   .trk-main { padding: 2.5rem 0 5rem; }
   .trk-card { background: #fff; max-width: 480px; margin: 0 auto; }
   .trk-form { padding: 1.75rem; display: flex; flex-direction: column; gap: 1rem; }
-  .trk-label { display: block; font-family: var(--rr-mono); font-size: 0.5rem; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(0,0,0,0.38); margin-bottom: 0.3rem; }
-  .trk-input { width: 100%; border: 1px solid rgba(0,0,0,0.13); padding: 0.6rem 0.85rem; font-family: var(--rr-sans); font-size: 0.9rem; color: #0d0d0d; background: #fff; border-radius: 0; outline: none; box-sizing: border-box; transition: border-color 0.2s; }
+  .trk-label { display: block; font-family: var(--rr-mono); font-size: 0.7rem; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(0,0,0,0.38); margin-bottom: 0.3rem; }
+  .trk-input { width: 100%; border: 1px solid rgba(0,0,0,0.13); padding: 0.6rem 0.85rem; font-family: var(--rr-sans); font-size: 0.95rem; color: #0d0d0d; background: #fff; border-radius: 0; outline: none; box-sizing: border-box; transition: border-color 0.2s; }
   .trk-input:focus { border-color: #0d0d0d; }
-  .trk-btn { background: #0d0d0d; color: #fff; border: none; padding: 0.85rem; font-family: var(--rr-mono); font-size: 0.62rem; letter-spacing: 0.14em; text-transform: uppercase; font-weight: 700; cursor: pointer; width: 100%; border-radius: 0; transition: opacity 0.18s; }
+  .trk-btn { background: #0d0d0d; color: #fff; border: none; padding: 0.85rem; font-family: var(--rr-mono); font-size: 0.75rem; letter-spacing: 0.14em; text-transform: uppercase; font-weight: 700; cursor: pointer; width: 100%; border-radius: 0; transition: opacity 0.18s; }
   .trk-btn:hover { opacity: 0.82; }
   .trk-btn:disabled { opacity: 0.35; cursor: not-allowed; }
-  .trk-err  { font-family: var(--rr-mono); font-size: 0.54rem; color: #c8382a; text-align: center; display: none; }
+  .trk-err  { font-family: var(--rr-mono); font-size: 0.72rem; color: #c8382a; text-align: center; display: none; }
   /* resultado */
   .trk-result { display: none; padding: 1.75rem; border-top: 1px solid rgba(0,0,0,0.07); }
-  .trk-order-num { font-family: var(--rr-mono); font-size: 0.55rem; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(0,0,0,0.35); margin: 0 0 0.2rem; }
+  .trk-order-num { font-family: var(--rr-mono); font-size: 0.7rem; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(0,0,0,0.35); margin: 0 0 0.2rem; }
   .trk-order-name { font-family: var(--rr-sans); font-weight: 800; font-size: 1.1rem; letter-spacing: -0.02em; margin: 0 0 1.25rem; }
-  .trk-status-badge { display: inline-block; font-family: var(--rr-mono); font-size: 0.52rem; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 700; padding: 0.3rem 0.75rem; margin-bottom: 1.25rem; }
-  .trk-items-title { font-family: var(--rr-mono); font-size: 0.48rem; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(0,0,0,0.3); margin: 0 0 0.65rem; }
+  .trk-status-badge { display: inline-block; font-family: var(--rr-mono); font-size: 0.7rem; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 700; padding: 0.3rem 0.75rem; margin-bottom: 1.25rem; }
+  .trk-items-title { font-family: var(--rr-mono); font-size: 0.68rem; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(0,0,0,0.3); margin: 0 0 0.65rem; }
   .trk-item { display: flex; justify-content: space-between; align-items: flex-start; padding: 0.55rem 0; border-bottom: 1px solid rgba(0,0,0,0.06); gap: 0.5rem; }
   .trk-item:last-child { border-bottom: none; }
-  .trk-item-name { font-family: var(--rr-sans); font-weight: 600; font-size: 0.84rem; margin: 0 0 0.1rem; }
-  .trk-item-meta { font-family: var(--rr-mono); font-size: 0.48rem; color: rgba(0,0,0,0.38); letter-spacing: 0.06em; }
-  .trk-item-price { font-family: var(--rr-mono); font-size: 0.78rem; font-weight: 700; white-space: nowrap; }
+  .trk-item-name { font-family: var(--rr-sans); font-weight: 600; font-size: 0.9rem; margin: 0 0 0.1rem; }
+  .trk-item-meta { font-family: var(--rr-mono); font-size: 0.65rem; color: rgba(0,0,0,0.38); letter-spacing: 0.06em; }
+  .trk-item-price { font-family: var(--rr-mono); font-size: 0.85rem; font-weight: 700; white-space: nowrap; }
   .trk-totals { margin-top: 1rem; padding-top: 0.85rem; border-top: 2px solid #0d0d0d; }
-  .trk-total-row { display: flex; justify-content: space-between; font-family: var(--rr-mono); font-size: 0.58rem; letter-spacing: 0.06em; margin-bottom: 0.3rem; }
-  .trk-total-row.big { font-size: 0.9rem; font-weight: 700; margin-top: 0.3rem; }
+  .trk-total-row { display: flex; justify-content: space-between; font-family: var(--rr-mono); font-size: 0.75rem; letter-spacing: 0.06em; margin-bottom: 0.3rem; }
+  .trk-total-row.big { font-size: 0.95rem; font-weight: 700; margin-top: 0.3rem; }
 
   .status-pending   { background: #fef9c3; color: #854d0e; }
   .status-confirmed { background: #dbeafe; color: #1d4ed8; }
@@ -48,7 +50,7 @@ const API  = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3000'
 </style>
 
 <div>
-  <Navbar client:load />
+  <Navbar client:load navLinks={navLinks.length ? navLinks : undefined} />
 
   <div class="trk-hero">
     <div class="container">

@@ -1,10 +1,29 @@
 import { createClient } from '@sanity/client'
+
 export const sanityClient = createClient({
   projectId: import.meta.env.PUBLIC_SANITY_PROJECT_ID,
   dataset:   import.meta.env.PUBLIC_SANITY_DATASET ?? 'production',
   apiVersion: '2024-01-01',
   useCdn: true,
 })
+
+export interface NavLinkData {
+  label:   string
+  slug:    string
+  enabled: boolean
+  order:   number
+}
+
+export async function getNavLinks(): Promise<NavLinkData[]> {
+  if (!import.meta.env.PUBLIC_SANITY_PROJECT_ID) return []
+  try {
+    return await sanityClient.fetch<NavLinkData[]>(
+      `*[_type == "navLink"] | order(order asc) { label, slug, enabled, order }`
+    )
+  } catch {
+    return []
+  }
+}
 
 // Construye URL de imagen desde un asset de Sanity
 export function urlFor(source: any): string {

@@ -6,21 +6,27 @@ import Footer from '../components/footer';
 import QuickviewModal from '../components/products/QuickviewModal.astro';
 import { getProducts } from '../lib/products';
 import { getDrops } from '../lib/drops';
+import { getNavLinks } from '../lib/sanity';
 
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
-const products    = await getProducts();
-const drops       = await getDrops();
-const heroDrop    = drops[0];
+const [products, drops, navLinks] = await Promise.all([getProducts(), getDrops(), getNavLinks()]);
+const heroDrop = drops[0];
 
 // No prefijar URLs absolutas (Sanity CDN) con base
 const url = (src: string) => src?.startsWith('http') ? src : `${base}/${src}`;
 
-// Hero slides: heroImage del drop activo + imágenes del primer producto del drop
-const heroProducts = products.filter(p => (p as any).dropSlug === heroDrop?.slug);
-const heroSlides = [
-  heroDrop?.heroImage,
-  ...heroProducts.flatMap(p => p.images).slice(0, 3),
-].filter(Boolean).map(src => url(src));
+// Hero slides: heroImage de cada drop activo con imagen (todos los drops)
+// Si algún drop no tiene heroImage, rellena con imágenes del producto de ese drop
+const heroSlides = drops
+  .map(d => d.heroImage)
+  .filter(Boolean)
+  .map(src => url(src))
+// Fallback: si no hay ningún drop con heroImage, usar imágenes de productos
+const heroSlidesFinal = heroSlides.length > 0 ? heroSlides : (() => {
+  const heroProducts = products.filter(p => (p as any).dropSlug === heroDrop?.slug);
+  return [heroDrop?.heroImage, ...heroProducts.flatMap(p => p.images).slice(0, 3)]
+    .filter(Boolean).map(src => url(src));
+})();
 
 const hiddenCategories = ['gorras', 'zapatos'];
 const visibleProducts = products.filter(p => !hiddenCategories.includes(p.category));
@@ -546,13 +552,14 @@ const categories = [
   .rr-product-card__name {
     font-family: var(--rr-sans);
     font-weight: 700;
-    font-size: 0.85rem;
-    margin-bottom: 0.2rem;
+    font-size: 0.95rem;
+    margin-bottom: 0.25rem;
+    line-height: 1.3;
   }
   .rr-product-card__sizes {
     font-family: var(--rr-mono);
-    font-size: 0.58rem;
-    letter-spacing: 0.08em;
+    font-size: 0.68rem;
+    letter-spacing: 0.06em;
     color: rgba(0,0,0,0.4);
     margin-bottom: 0.5rem;
   }
@@ -564,16 +571,16 @@ const categories = [
   .rr-product-card__price {
     font-family: var(--rr-mono);
     font-weight: 700;
-    font-size: 0.88rem;
+    font-size: 1rem;
   }
   .rr-product-card__tag {
     font-family: var(--rr-mono);
-    font-size: 0.55rem;
-    letter-spacing: 0.12em;
+    font-size: 0.62rem;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
     background: var(--rr-ink);
     color: #fff;
-    padding: 0.2rem 0.55rem;
+    padding: 0.2rem 0.6rem;
   }
 
   /* ── QUICK VIEW BTN ────────────────────────────────────── */
@@ -668,13 +675,13 @@ const categories = [
 </style>
 
 <main>
-  <Navbar client:load />
+  <Navbar client:load navLinks={navLinks.length ? navLinks : undefined} />
 
   <!-- ══ HERO CARRUSEL ══ -->
   <section class="rr-hero" id="rr-hero">
     <!-- Slides -->
     <div class="rr-hero__slides" id="hero-slides">
-      {heroSlides.map((src, i) => (
+      {heroSlidesFinal.map((src, i) => (
         <div
           class={`rr-hero__slide${i === 0 ? ' active' : ''}`}
           style={`background-image: url('${src}')`}
@@ -737,7 +744,7 @@ const categories = [
 
     <!-- Dots -->
     <div class="rr-hero__dots" id="hero-dots">
-      {heroSlides.map((_, i) => (
+      {heroSlidesFinal.map((_, i) => (
         <button class={`rr-hero__dot${i === 0 ? ' active' : ''}`} data-slide={i} aria-label={`Slide ${i + 1}`} />
       ))}
     </div>
@@ -832,7 +839,7 @@ const categories = [
     </div>
     <div class="rr-products-grid">
       {bestsellers.map((product, i) => (
-        <div class={`rr-product-card rr-reveal rr-reveal-delay-${Math.min(i+1,3)}`}>
+        <a href={`${base}/product/${product.slug}`} class={`rr-product-card rr-reveal rr-reveal-delay-${Math.min(i+1,3)}`}>
           <div class="rr-product-card__img-wrap">
             <img src={url(product.images[0])} alt={product.name} class="rr-product-card__img rr-product-card__img--primary" loading="lazy" />
             {product.images[1] && (
@@ -858,17 +865,15 @@ const categories = [
               Vista rápida
             </button>
           </div>
-          <a href={`${base}/product/${product.slug}`} style="text-decoration:none;color:inherit;display:block;">
-            <div class="rr-product-card__info">
-              <div class="rr-product-card__name">{product.name}</div>
-              <div class="rr-product-card__sizes">{product.sizes.join(' · ')}</div>
-              <div class="rr-product-card__footer">
-                <span class="rr-product-card__price">${product.price} MXN</span>
-                {(product as any).limited && <span class="rr-product-card__tag">Limited</span>}
-              </div>
+          <div class="rr-product-card__info">
+            <div class="rr-product-card__name">{product.name}</div>
+            <div class="rr-product-card__sizes">{product.sizes.join(' · ')}</div>
+            <div class="rr-product-card__footer">
+              <span class="rr-product-card__price">${product.price} MXN</span>
+              {(product as any).limited && <span class="rr-product-card__tag">Limited</span>}
             </div>
-          </a>
-        </div>
+          </div>
+        </a>
       ))}
     </div>
   </section>
